@@ -33,9 +33,8 @@ ap.add_argument("-i", "--image", required=True, help="Path to the image")
 args = vars(ap.parse_args())
 
 # load the image, clone it, and setup the mouse callback function
-print args["image"]
 image = cv2.imread(args["image"])
-
+clone = image.copy()
 cv2.namedWindow("image")
 cv2.setMouseCallback("image", click)
 
