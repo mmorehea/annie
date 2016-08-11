@@ -89,10 +89,12 @@ args = vars(ap.parse_args())
 # load the image, clone it, and setup the mouse callback function
 list_of_images = sorted(glob.glob(args["dir"] +'*'))
 start = timer()
-
+largestSize = 0
 for imageCount in xrange(len(list_of_images) - 1):
-	#if imageCount % 100 == 0:
-	#print imageCount
+	if imageCount % 100 == 0:
+		print imageCount
+		end = timer()
+		print(end - start)
 	imgPath1 = list_of_images[imageCount]
 	imgPath2 = list_of_images[imageCount+1]
 
@@ -106,44 +108,53 @@ for imageCount in xrange(len(list_of_images) - 1):
 	numberOfColors = len(colorMap.values()[1:])
 	colorCount = 1
 	for color in colorMap.values()[1:]:
-		if colorCount % 100 == 0:
-			print str(colorCount) + ' / ' + str(numberOfColors)
-			end = timer()
-			print(end - start)
+		# if colorCount % 100 == 0:
+		# 	print str(colorCount) + ' / ' + str(numberOfColors)
+
 		colorCount += 1
-		print "Color is " + str(color)
+		#print "Color is " + str(color)
 		firstshape = np.where(img1 == color)
 		minX, maxX, minY, maxY = findBB(firstshape)
+		deltaX = maxX - minX
+		deltaY = maxY - minY
+		# minX = deltaX * .25 + minX
+		# minY = deltaY * .25 + minY
+		# maxX = maxX - deltaX * .25
+		# maxY = maxY - deltaY * .25
 		#code.interact(local=locals())
 		searchSpace = img2[minX:maxX, minY:maxY]
-		if searchSpace.size < 17:
-			continue
+		t = False
+		if searchSpace.size > 40000:
+			t = True
 		searchSpaceFlat = np.ndarray.flatten(searchSpace)
 		searchSpaceFlat = filter(lambda a: a != 0, searchSpaceFlat)
 		if len(searchSpaceFlat) == 0:
+
 			print 'No Object Found'
 			continue
 		else:
 			counts = np.bincount(searchSpaceFlat)
 			mode = np.argmax(counts)
-			print "Mode is " + str(mode)
+			if t:
+				code.interact(local=locals())
+			#print "Mode is " + str(mode)
 			if mode == 0:
 				print "woah"
-			pixelsMatch = np.where(img2[minX:maxX, minY:maxY] == mode)
-			newXs = pixelsMatch[0] + minX
-			newYs = pixelsMatch[1] + minY
+			pixelsMatch = np.where(img2 == mode)
+			#newXs = pixelsMatch[0]
+			#newYs = pixelsMatch[1]
 			#code.interact(local=locals())
-			pixelsMatch = recSearch([newXs[0], newYs[0]], img2, mode)
-			print len(pixelsMatch)
+			#pixelsMatch = recSearch([newXs[0], newYs[0]], img2, mode)
+			#print len(pixelsMatch)
 			#code.interact(local=locals())
 			try:
 				newImg[pixelsMatch] = color
 			except IndexError:
 				continue
 
-cv2.imwrite("test.tiff", newImg)
+	cv2.imwrite(imgPath2, newImg)
 
-
+print largestSize
 #while True:
 	#cv2.imshow("image", image)
 	#key = cv2.waitKey(20) & 0xFF
