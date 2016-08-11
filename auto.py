@@ -1,17 +1,12 @@
-# USAGE
-# python click_and_crop.py --image jurassic_park_kitchen.jpg
-
-# import the necessary packages
 import argparse
 import cv2
 import glob
 import code
 import numpy as np
 from timeit import default_timer as timer
-# initialize the list of reference points and boolean indicating
-# whether cropping is being performed or not
+
 np.set_printoptions(threshold=np.inf)
-#def findNextLabel(img1, img2):
+
 def findBB(dlist):
 	xs = dlist[0]
 	ys = dlist[1]
@@ -40,17 +35,14 @@ def waterShedSearch(searchSpace, img, color):
 
 
 def recSearch(pixel, img, color):
-
 	front = [pixel]
 	found = [pixel]
-
 	foundGrid = np.zeros((img.shape[0], img.shape[1]))
 	foundGrid[pixel[0], pixel[1]] = 1
 	counter = 0
 	while len(front) > 0:
 		fronty = front
 		front = []
-
 		for each in fronty:
 			pixel = each
 			searchPixels = [[pixel[0]+1, pixel[1]], [pixel[0]-1, pixel[1]], [pixel[0], pixel[1]+1], [pixel[0], pixel[1]-1]]
@@ -66,19 +58,9 @@ def recSearch(pixel, img, color):
 					foundGrid[neighbor[0], neighbor[1]] = 1
 					counter = counter + 1
 					#found.append([neighbor[0], neighbor[1]])
-
 	found = np.where(foundGrid == 1)
-	#
 	found = zip(found[0],found[1])
-
-	#code.interact(local=locals())
 	return found
-
-
-
-
-
-
 
 
 # construct the argument parser and parse the arguments
@@ -91,10 +73,9 @@ list_of_images = sorted(glob.glob(args["dir"] +'*'))
 start = timer()
 largestSize = 0
 for imageCount in xrange(len(list_of_images) - 1):
-	if imageCount % 100 == 0:
-		print imageCount
-		end = timer()
-		print(end - start)
+	print imageCount
+	end = timer()
+	print(end - start)
 	imgPath1 = list_of_images[imageCount]
 	imgPath2 = list_of_images[imageCount+1]
 
@@ -123,20 +104,20 @@ for imageCount in xrange(len(list_of_images) - 1):
 		# maxY = maxY - deltaY * .25
 		#code.interact(local=locals())
 		searchSpace = img2[minX:maxX, minY:maxY]
-		t = False
-		if searchSpace.size > 40000:
-			t = True
+		#t = False
+		if searchSpace.size < 50:
+			continue
 		searchSpaceFlat = np.ndarray.flatten(searchSpace)
 		searchSpaceFlat = filter(lambda a: a != 0, searchSpaceFlat)
 		if len(searchSpaceFlat) == 0:
 
-			print 'No Object Found'
+			#print 'No Object Found'
 			continue
 		else:
 			counts = np.bincount(searchSpaceFlat)
 			mode = np.argmax(counts)
-			if t:
-				code.interact(local=locals())
+			#if t:
+			#	code.interact(local=locals())
 			#print "Mode is " + str(mode)
 			if mode == 0:
 				print "woah"
@@ -154,7 +135,7 @@ for imageCount in xrange(len(list_of_images) - 1):
 
 	cv2.imwrite(imgPath2, newImg)
 
-print largestSize
+
 #while True:
 	#cv2.imshow("image", image)
 	#key = cv2.waitKey(20) & 0xFF
