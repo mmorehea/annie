@@ -88,7 +88,25 @@ for imageCount in xrange(len(list_of_images) - 1):
 	colorMap = buildColorMap(img1)
 	numberOfColors = len(colorMap.values()[1:])
 	colorCount = 1
+
+
+
+
 	for color in colorMap.values()[1:]:
+
+		pixelpoints1 = np.where(img1 == color)
+		pixelpoints1 = zip(pixelpoints1[0],pixelpoints1[1])
+		cnt = np.array([[each] for each in pixelpoints1],dtype='float32')
+		image1 = np.zeros(img1.shape, np.uint8)
+
+		ctr = np.array(cnt).reshape((-1,1,2)).astype(np.int32)
+		cv2.drawContours(image1, [ctr], 0, 255, 3)
+
+
+		code.interact(local=locals())
+
+
+
 		# if colorCount % 100 == 0:
 		# 	print str(colorCount) + ' / ' + str(numberOfColors)
 
@@ -116,8 +134,6 @@ for imageCount in xrange(len(list_of_images) - 1):
 		else:
 			counts = np.bincount(searchSpaceFlat)
 			mode = np.argmax(counts)
-			#if t:
-			#	code.interact(local=locals())
 			#print "Mode is " + str(mode)
 			if mode == 0:
 				print "woah"
