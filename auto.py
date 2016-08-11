@@ -98,7 +98,7 @@ for imageCount in xrange(len(list_of_images) - 1):
 
 	img1 = cv2.imread(imgPath1, -1)
 	img2 = cv2.imread(imgPath2, -1)
-	newImg = img2
+	newImg = np.copy(img2)
 	if img1.shape != img2.shape:
 		print "THE IMAGES ARE THE WRONG SIZE"
 		break
