@@ -91,10 +91,17 @@ for imageCount in xrange(len(list_of_images) - 1):
 
 
 
-	image1 = np.zeros(img1.shape, np.uint8)
+	#contours,hierarchy = cv2.findContours(image1,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+	#cv2.drawContours(image1, contours, -1, 255, 3)
+
+	cntList1 = []
+	cntColorDict1 = {}
 
 	for color in colorMap.values()[1:]:
 
+		image1 = np.zeros(img1.shape, np.uint8)
+
+		image2 = np.zeros(img2.shape, np.uint8)
 
 		pixelpoints1 = np.where(img1 == color)
 		pixelpoints1 = zip(pixelpoints1[0],pixelpoints1[1])
@@ -104,56 +111,76 @@ for imageCount in xrange(len(list_of_images) - 1):
 		#cv2.drawContours(img1, [ctr], 0, 255, 3)
 
 		for each in pixelpoints1: image1[each] = 255
-		code.interact(local=locals())
+
+
+		pixelpoints2 = np.where(img2 == color)
+		pixelpoints2 = zip(pixelpoints2[0],pixelpoints2[1])
+
+		for each in pixelpoints2: image2[each] = 255
+
+		kernel = np.ones((5,5),np.uint8)
+		image1 = cv2.erode(image1,kernel,iterations = 1)
+		image1 = cv2.dilate(image1,kernel,iterations = 1)
+
+
+		contours, hierarchy = cv2.findContours(np.copy(image1), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+		# contour = contours[0]
+
+		# cntColorDict1[contour] = color
+
+		# cntList1.append(contour)
+		if len(contours) > 1:
+			code.interact(local=locals())
 
 
 
 		# if colorCount % 100 == 0:
 		# 	print str(colorCount) + ' / ' + str(numberOfColors)
 
-		colorCount += 1
-		#print "Color is " + str(color)
-		firstshape = np.where(img1 == color)
-		try:
-			minX, maxX, minY, maxY = findBB(firstshape)
-		except:
-			continue
-		deltaX = maxX - minX
-		deltaY = maxY - minY
+		# colorCount += 1
+		# #print "Color is " + str(color)
+		# firstshape = np.where(img1 == color)
+		# try:
+		# 	minX, maxX, minY, maxY = findBB(firstshape)
+		# except:
+		# 	continue
+		# deltaX = maxX - minX
+		# deltaY = maxY - minY
 		# minX = deltaX * .25 + minX
 		# minY = deltaY * .25 + minY
 		# maxX = maxX - deltaX * .25
 		# maxY = maxY - deltaY * .25
 		#code.interact(local=locals())
-		searchSpace = img2[minX:maxX, minY:maxY]
+		#searchSpace = img2[minX:maxX, minY:maxY]
 		#t = False
-		if searchSpace.size < 50:
-			continue
-		searchSpaceFlat = np.ndarray.flatten(searchSpace)
-		searchSpaceFlat = filter(lambda a: a != 0, searchSpaceFlat)
-		if len(searchSpaceFlat) == 0:
+		# if searchSpace.size < 50:
+		# 	continue
+		# searchSpaceFlat = np.ndarray.flatten(searchSpace)
+		# searchSpaceFlat = filter(lambda a: a != 0, searchSpaceFlat)
+		# if len(searchSpaceFlat) == 0:
 
 			#print 'No Object Found'
-			continue
-		else:
-			counts = np.bincount(searchSpaceFlat)
-			mode = np.argmax(counts)
-			#print "Mode is " + str(mode)
-			if mode == 0:
-				print "woah"
-			pixelsMatch = np.where(img2 == mode)
-			#newXs = pixelsMatch[0]
+		# 	continue
+		# else:
+		# 	counts = np.bincount(searchSpaceFlat)
+		# 	mode = np.argmax(counts)
+		# 	#print "Mode is " + str(mode)
+			# if mode == 0:
+			# 	print "woah"
+			# pixelsMatch = np.where(img2 == mode)
+			# #newXs = pixelsMatch[0]
 			#newYs = pixelsMatch[1]
 			#code.interact(local=locals())
 			#pixelsMatch = recSearch([newXs[0], newYs[0]], img2, mode)
 			#print len(pixelsMatch)
 			#code.interact(local=locals())
-			try:
-				newImg[pixelsMatch] = color
-			except IndexError:
-				continue
+	# 		try:
+	# 			newImg[pixelsMatch] = color
+	# 		except IndexError:
+	# 			continue
 
-	cv2.imwrite(imgPath2, newImg)
+	# cv2.imwrite(imgPath2, newImg)
 
 
 #while True:
