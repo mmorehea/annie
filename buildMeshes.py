@@ -37,20 +37,22 @@ ap.add_argument("-d", "--dir", required=True, help="Path to the directory")
 args = vars(ap.parse_args())
 
 # load the image, clone it, and setup the mouse callback function
-list_of_images = sorted(glob.glob(args["dir"] +'*'))
+#list_of_images = sorted(glob.glob(args["dir"] +'*'))
 start = timer()
 
+impath = 'vcn_tracked_tiffs1.tif'
 
-imgPath1 = list_of_images[0]
-imgs = cv2.imread(imgPath1, -1)
+imgs = tifffile.imread(impath)
+#imgPath1 = list_of_images[0]
+#imgs = cv2.imread(imgPath1, -1)
 
-for imageCount in xrange(len(list_of_images)):
-    if imageCount == 0:
-        continue
-    print 'importing image #' + str(imageCount)
-    imgPath1 = list_of_images[imageCount]
-    img1 = cv2.imread(imgPath1, -1)
-    imgs = np.dstack((imgs, img1))
+#for imageCount in xrange(len(list_of_images)):
+#    if imageCount == 0:
+#        continue
+#    print 'importing image #' + str(imageCount)
+#    imgPath1 = list_of_images[imageCount]
+#    img1 = cv2.imread(imgPath1, -1)
+#    imgs = np.dstack((imgs, img1))
 
 colorMap = buildColorMap(imgs)
 allSizes = []
