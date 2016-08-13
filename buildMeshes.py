@@ -6,6 +6,7 @@ import numpy as np
 from timeit import default_timer as timer
 from skimage import measure
 import matplotlib.pyplot as plt
+import tifffile
 
 def writeOBJ(filepath, verts, faces):
 	with open(filepath, 'w') as f:
@@ -33,7 +34,7 @@ def buildColorMap(img):
 
 
 ap = argparse.ArgumentParser()
-ap.add_argument("-d", "--dir", required=True, help="Path to the directory")
+ap.add_argument("-i", "--img", required=True, help="Path to the multipage tiff")
 args = vars(ap.parse_args())
 
 # load the image, clone it, and setup the mouse callback function
@@ -43,6 +44,8 @@ start = timer()
 impath = 'vcn_tracked_tiffs1.tif'
 
 imgs = tifffile.imread(impath)
+
+print "loaded image stack"
 #imgPath1 = list_of_images[0]
 #imgs = cv2.imread(imgPath1, -1)
 
@@ -71,11 +74,11 @@ for each in colorMap.keys()[1:]:
 	xMin = np.amin(first[0])
 	yMin = np.amin(first[1])
 	zMin = np.amin(first[2])
-	s = (xMax-xMin) * (yMax -yMin) * (zMax- zMin)
+	s = zMax- zMin
 	allSizes.append(s)
-	if s < 1000000:
+	if s > 500:
 		continue
-	print each
+	print "found suitable object: " + str(each)
 	g = np.zeros((xMax+1,yMax+1,zMax+1))
 	g[first] = 1
 	verts, faces = measure.marching_cubes(g, 0)
@@ -83,5 +86,7 @@ for each in colorMap.keys()[1:]:
 	for v in verts:
 		transVerts.append([v[0] + xMin, v[1] + yMin, v[2] + zMin])
 	writeOBJ('meshes/' + str(each) + '.obj', transVerts, faces)
+	print "done building obj"
+
 
 code.interact(local=locals())
