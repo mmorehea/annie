@@ -1,24 +1,24 @@
+import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import code
 
 def main():
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-d", "--dir", required=True, help="Path to the directory")
+    args = vars(ap.parse_args())
+
+
     x = np.linspace(0, 10, 100)
     axes = AxesSequence()
     for i, ax in zip(range(510), axes):
-        print i
-        img=cv2.imread('crop/crop000{}.tif'.format(i))
-        try:
-            ax.imshow(img)
-        except:
-            try:
-                img=cv2.imread('crop/crop00{}.tif'.format(i))
-            except:
-                try:
-                    img=cv2.imread('crop/crop0{}.tif'.format(i))
-                except:
-                    code.interact(local=locals())
+        print '{0:04d}'.format(i)
+        print'crop/crop{0:04d}.tif'.format(i)
+        img=cv2.imread('crop/crop{0:04d}.tif'.format(i))
+        ax.imshow(img)
+
 
         ax.set_title(i)
         # ax.plot(x, np.sin(i * x))
@@ -45,7 +45,7 @@ class AxesSequence(object):
     def new(self):
         # The label needs to be specified so that a new axes will be created
         # instead of "add_axes" just returning the original one.
-        ax = self.fig.add_axes([0.15, 0.1, 0.8, 0.8], 
+        ax = self.fig.add_axes([0.15, 0.1, 0.8, 0.8],
                                visible=False, label=self._n)
         self._n += 1
         self.axes.append(ax)
