@@ -1,5 +1,6 @@
 import argparse
 import cv2
+import os
 import glob
 import code
 import numpy as np
@@ -56,18 +57,22 @@ print "loaded image stack"
 #    imgPath1 = list_of_images[imageCount]
 #    img1 = cv2.imread(imgPath1, -1)
 #    imgs = np.dstack((imgs, img1))
-
+print "building colormap"
 colorMap = buildColorMap(imgs)
 allSizes = []
 
 objs_processed = glob.glob("./meshes/*")
-
+print "beginning search for objs"
+count = 0
+folder = "c1"
+os.mkdir("./meshes/" + folder)
 for each in colorMap.keys()[1:]:
-	if "./meshes/" + str(each) + ".obj" in objs_processed:
-		continue
+	if each % 21 == 0:
+		count += 1
+		folder = "c" + str(count)
+		os.mkdir("./meshes/" + folder)
 	first = np.where(imgs == colorMap[each])
-	if len(first[0])*len(first[1])*len(first[2]) < 400:
-		continue
+
 	xMax = np.amax(first[0])
 	yMax = np.amax(first[1])
 	zMax = np.amax(first[2])
@@ -85,7 +90,7 @@ for each in colorMap.keys()[1:]:
 	transVerts = []
 	for v in verts:
 		transVerts.append([v[0] + xMin, v[1] + yMin, v[2] + zMin])
-	writeOBJ('meshes/' + str(each) + '.obj', transVerts, faces)
+	writeOBJ('meshes/' + folder + "/wholevcn_" + folder + "_input" + str(count) + '.obj', transVerts, faces)
 	print "done building obj"
 
 
