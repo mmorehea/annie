@@ -45,7 +45,9 @@ def main():
 
 def getImages():
     ap = argparse.ArgumentParser()
+
     ap.add_argument("-i", "--img", required=True, help="Path to tiff stack.")
+
     args = vars(ap.parse_args())
     impath = args["img"]
     images = []
