@@ -59,7 +59,7 @@ def getImages():
         zz, yy, xx = img.shape
         print "Loaded image of size z:" + str(zz) + " y:" + str(yy) + " x:" + str(xx)
         for i in range(zz):
-            images.append(QtGui.QPixmap(img[i,:,:]))
+            images.append(buildQtImg(img[i,:,:]))
         return images
 
 def mouseMoved(evt):
@@ -72,6 +72,41 @@ def mouseMoved(evt):
         vLine.setPos(mousePoint.x())
         hLine.setPos(mousePoint.y())
 
+def getStack():
+    ap = argparse.ArgumentParser()
+
+    ap.add_argument("-i", "--img", required=True, help="Path to tiff stack.")
+
+    args = vars(ap.parse_args())
+    impath = args["img"]
+
+    if os.path.isdir(impath):
+        images = glob.glob(impath + "*")
+        first = True
+        for ii, each in enumerate(sorted(images)):
+            if ii % 100 == 0:
+                print ii
+            if first:
+                img = tifffile.imread(each)
+                xx, yy = img.shape
+                imgStack = np.zeros(len(images), xx, yy)
+                imgStack[ii, :, :] = img
+            else:
+                i = tifffile.imread(each)
+                imgStack[ii, :, :] = i
+
+        return imgStack
+    else:
+        img = tifffile.imread(impath)
+        zz, yy, xx = img.shape
+        print "Loaded image of size z:" + str(zz) + " y:" + str(yy) + " x:" + str(xx)
+        return img
+
+def buildQtImg(img):
+    height, width = img.shape
+    bytesPerLine = width
+    qImg = QtGui.QImage(img.data, width, height, bytesPerLine)
+    return qImg
 
 
 
@@ -91,6 +126,7 @@ class Widget(QtGui.QWidget):
         self.view.centerOn(self.image)
 
         self._images = getImages()
+
 
         self.slider = QtGui.QSlider(self)
         self.slider.setOrientation(QtCore.Qt.Horizontal)
@@ -122,6 +158,10 @@ class Widget(QtGui.QWidget):
             c = self.image.pixmap().toImage().pixel(position.x(), position.y())
             colors = QtGui.QColor(c).getRgbF()
             print "(%s,%s) = %s" % (position.x(), position.y(), colors)
+            mask1 = self.image.pixmap().createMaskFromColor(QtGui.QColor(c), QtCore.Qt.MaskOutColor)
+            cover = QtGui.QGraphicsPixmapItem()
+            
+
 
             #color = QtGui.QColor.fromRgb(self.image.pixel( position ) )
             #if color.isValid():
