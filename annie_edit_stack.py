@@ -1,10 +1,13 @@
 import argparse
+import matplotlib
+matplotlib.use('GTKAgg')
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import code
 import tifffile
 from matplotlib.widgets import Slider, Button, RadioButtons
+from timeit import default_timer as timer
 
 def on_mousescroll(self, event):
     if event.button == 'down':
@@ -72,6 +75,7 @@ class AxesSequence(object):
         return ax
 
     def on_mousescroll(self, event):
+        start = timer()
         if event.button == 'down':
             self.next_plot()
         elif event.button == 'up':
@@ -79,12 +83,17 @@ class AxesSequence(object):
         else:
             return
         self.fig.canvas.draw()
+        end = timer()
+        print "mousescroll " + str(end - start)
 
     def next_plot(self):
+        start = timer()
         if self._i <= len(self.axes)-2:
             self.axes[self._i].set_visible(False)
             self.axes[self._i+1].set_visible(True)
             self._i += 1
+        end = timer()
+        print "nextplot " + str(end - start)
 
     def prev_plot(self):
         if self._i > 0:
