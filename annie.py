@@ -9,9 +9,13 @@ import code
 import tifffile
 import numpy as np
 from pyqtgraph.Qt import QtCore, QtGui
+from PyQt4 import QtCore
 import pyqtgraph as pg
 import os
 import glob
+import sys
+import inspect
+import subprocess
 
 
 # app = QtGui.QApplication([])
@@ -44,16 +48,15 @@ def main():
     app.exec_()
 
 def getImages():
-    ap = argparse.ArgumentParser()
-
-    ap.add_argument("-i", "--img", required=True, help="Path to tiff stack.")
-
-    args = vars(ap.parse_args())
-    impath = args["img"]
+    impath = sys.argv[1]
     images = []
     if os.path.isdir(impath):
-        images = glob.glob(impath + "*")
-        return sorted(images)
+        image_paths = sorted(glob.glob(impath + "*"))
+        images = []
+        for path in image_paths:
+            image = QtGui.QImage(path,'tif')
+            images.append(image)
+        return images
     else:
         img = tifffile.imread(impath)
         zz, yy, xx = img.shape
@@ -73,12 +76,7 @@ def mouseMoved(evt):
         hLine.setPos(mousePoint.y())
 
 def getStack():
-    ap = argparse.ArgumentParser()
-
-    ap.add_argument("-i", "--img", required=True, help="Path to tiff stack.")
-
-    args = vars(ap.parse_args())
-    impath = args["img"]
+    impath = sys.argv[1]
 
     if os.path.isdir(impath):
         images = glob.glob(impath + "*")
@@ -108,7 +106,85 @@ def buildQtImg(img):
     qImg = QtGui.QImage(img.data, width, height, bytesPerLine)
     return qImg
 
+def makeDisplayFile(path):
+    img = tifffile.imread(path)
 
+    xx, yy = img.shape
+    newImg = np.zeros((xx, yy, 3))
+    u = []
+    for r in xrange(img.shape[0]):
+        for c in xrange(img.shape[1]):
+            if img[r,c] not in u:
+                u.append(img[r,c])
+
+    number_of_colors = len(u)
+
+    with open('colors.txt') as f:
+        colors = f.readlines()
+
+    colors = [[int(x) for x in c[:-1].split(',')] for c in colors]
+
+    map_16_to_8 = dict([(x,y) for x,y in zip(u, colors)])
+    map_16_to_8[0] = [0, 0, 0]
+
+    for c in map_16_to_8.keys():
+        for point in zip(np.where(img==c)[0],np.where(img==c)[1]):
+            newImg[point] = map_16_to_8[c]
+
+    if not os.path.exists('display'):
+        os.mkdir('display')
+
+    newPath = 'display/' + path[path.index('/') + 1:]
+
+    cv2.imwrite(newPath, newImg)
+    print 'Writing ' + newPath
+
+    return newPath
+
+def mapConvert(slide):
+    code.interact(local=locals())
+    slide = tifffile.imread(slide)
+    xx, yy = slide.shape
+    newSlide = np.zeros((xx, yy, 3))
+    u = []
+    for r in xrange(slide.shape[0]):
+        for c in xrange(slide.shape[1]):
+            if slide[r,c] not in u:
+                u.append(slide[r,c])
+
+    number_of_colors = len(u)
+
+
+    #subprocess.Popen(['./glasbey.py', str(number_QtCoreof_colors), 'colors.txt'])
+
+    with open('colors.txt') as f:
+        colors = f.readlines()
+
+    colors = [[int(x) for x in c[:-1].split(',')] for c in colors]
+
+    map_16_to_8 = dict([(x,y) for x,y in zip(u, colors)])
+
+    for c in map_16_to_8.keys():
+        for point in zip(np.where(slide==c)[0],np.where(slide==c)[1]):
+            newSlide[point] = map_16_to_8[c]
+
+    code.interact(local=locals())
+
+    return newSlide
+
+def makeAndSetColorTable(images):
+    with open('colors.txt') as f:
+        colors = f.readlines()
+    #code.interact(local=locals())
+    #colorVector = QtCore.QVector(len(colors))
+    colorVector = []
+    #colorVector = colors
+    for color in colors:
+        colorVector.append(QtGui.QColor.qRgb(color[0],color[1],color[2]))
+    for image in images:
+        #code.interact(local=locals())
+        image.setColorTable(colorVector)
+    return images
 
 class Widget(QtGui.QWidget):
 
@@ -125,8 +201,9 @@ class Widget(QtGui.QWidget):
         self.scene.addItem(self.image)
         self.view.centerOn(self.image)
 
-        self._images = getImages()
-
+        # Changed this to be a list of tuples
+        # self._images = [(i, makeDisplayFile(i)) for i in getImages()]
+        self._images = makeAndSetColorTable(getImages())
 
         self.slider = QtGui.QSlider(self)
         self.slider.setOrientation(QtCore.Qt.Horizontal)
@@ -148,8 +225,10 @@ class Widget(QtGui.QWidget):
         try:
             self.sliderIndex = val
             self.image.setPixmap(QtGui.QPixmap(self._images[val]))
+
         except IndexError:
             print "Error: No image at index", val
+
 
     def pixelSelect( self, event ):
             position = QtCore.QPoint( event.pos().x(),  event.pos().y())
@@ -160,7 +239,7 @@ class Widget(QtGui.QWidget):
             print "(%s,%s) = %s" % (position.x(), position.y(), colors)
             mask1 = self.image.pixmap().createMaskFromColor(QtGui.QColor(c), QtCore.Qt.MaskOutColor)
             cover = QtGui.QGraphicsPixmapItem()
-            
+
 
 
             #color = QtGui.QColor.fromRgb(self.image.pixel( position ) )
