@@ -176,14 +176,18 @@ def makeAndSetColorTable(images):
     with open('colors.txt') as f:
         colors = f.readlines()
     #code.interact(local=locals())
-    #colorVector = QtCore.QVector(len(colors))
-    colorVector = []
-    #colorVector = colors
-    for color in colors:
-        colorVector.append(QtGui.QColor.qRgb(color[0],color[1],color[2]))
+    #colorVector = QtCore.Qt.QVector(len(colors))
+    #colorVector = []
+    colors = [[int(x) for x in c[:-1].split(',')] for c in colors]
+    #code.interact(local=locals())
+    colorVector = colors
+    #code.interact(local=locals())
+    #for color in colors:
+    #    colorVector.append(QtGui.QColor.qRgb(color[0],color[1],color[2]))
+    code.interact(local=locals())
     for image in images:
-        #code.interact(local=locals())
         image.setColorTable(colorVector)
+        #code.interact(local=locals())
     return images
 
 class Widget(QtGui.QWidget):
