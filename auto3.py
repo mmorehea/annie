@@ -13,10 +13,12 @@ def main():
 
     x = np.linspace(0, 10, 100)
     axes = AxesSequence()
-    for i, ax in zip(range(510), axes):
+    for i, ax in zip(range(10), axes):
         print '{0:04d}'.format(i)
         print'crop/crop{0:04d}.tif'.format(i)
         img=cv2.imread('crop/crop{0:04d}.tif'.format(i))
+
+        code.interact(local=locals())
         ax.imshow(img)
 
 
