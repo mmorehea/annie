@@ -47,6 +47,23 @@ def findMedian(listofpixels):
 	median = (np.median(Xs),np.median(Ys))
 	return median
 
+def getSeedPixel(centroid1, median1, images, color, zspace):
+	shouldSkip = False
+	img = images[imageCount + zspace]
+
+	if img[centroid1] == 0:
+			if img[median1] == 0:
+				print 'Found 0, skipping color ' + str(color) 
+				shouldSkip = True
+			else:
+				seedpixel = median1
+		else:
+			seedpixel = centroid1
+
+	return shouldSkip, seedpixel
+
+
+
 def recSearch(pixel, img, color):
 	front = [pixel]
 	found = [pixel]
@@ -84,37 +101,33 @@ def recSearch(pixel, img, color):
 dirr = sys.argv[1]
 
 # load the image, clone it, and setup the mouse callback function
-list_of_images = sorted(glob.glob(dirr +'*'))
+list_of_image_paths = sorted(glob.glob(dirr +'*'))
+
+images = []
+for path in list_of_image_paths:
+	im = cv2.imread(path)
+	images.append(im)
+
 start = timer()
-largestSize = 0
-for imageCount in xrange(len(list_of_images) - 1):
+
+for imageCount, image in enumerate(images):
 	print imageCount
 	end = timer()
 	print(end - start)
-	imgPath1 = list_of_images[imageCount]
-	imgPath2 = list_of_images[imageCount+1]
+	
 
-	img1 = cv2.imread(imgPath1, -1)
-	img2 = cv2.imread(imgPath2, -1)
-	newImg = np.copy(img2)
-	if img1.shape != img2.shape:
-		print "THE IMAGES ARE THE WRONG SIZE"
-		break
-
-
-	colorMap = buildColorMap(img1)
+	colorMap = buildColorMap(image)
 
 	# Omitting the first one because it's just 0 mapped to 0
 	colorVals = colorMap.values()[1:]
 
 	numberOfColors = len(colorVals)
-	colorCount = 1
 
-	image1 = np.zeros(img1.shape, np.uint8)
+	# image1 = np.zeros(img1.shape, np.uint8)
 
 	for n, color in enumerate(colorVals):
 
-
+		zspace = 1
 
 		where = np.where(img1 == color)
 		listofpixels1 = zip(list(where[0]), list(where[1]))
@@ -124,22 +137,38 @@ for imageCount in xrange(len(list_of_images) - 1):
 		median1 = findMedian(listofpixels1)
 
 
-		cnt = np.array([[each] for each in listofpixels1],dtype='float32')
 
-		ctr = np.array(cnt).reshape((-1,1,2)).astype(np.int32)
-		cv2.drawContours(image1, [ctr], 0, 255, 3)
+		# Need a condition for if the color is already the same?
+
+		percent_overlap = 1
+
+		while percent_overlap < 0.5:
+
+			shouldSkip, seedpixel = getSeedPixel(centroid1, median1, images, color, zspace)
+			if shouldSkip:
+				break
+
+			percent_overlap, setofpixels2 = testOverlap(setofpixels1, imageCount + zspace, seedpixel)
+			zspace += 1
 
 
-		code.interact(local=locals())
+	else:
 
-		if img2[centroid1] == 0:
-			if img2[median1] == 0:
-				print 'Found 0, skipping color ' + str(color) 
-				continue
-			else:
-				seedpixel = median1
-		else:
-			seedpixel = centroid1
+		for pixel in setofpixels2:
+			images[imageCount + zspace] = color
+
+
+		# cnt = np.array([[each] for each in listofpixels1],dtype='float32')
+
+		# ctr = np.array(cnt).reshape((-1,1,2)).astype(np.int32)
+		# cv2.drawContours(image1, [ctr], 0, 255, 3)
+
+		# display_image1 = cv2.resize(image1, (0,0), fx=0.5, fy=0.5)
+		# display_img1 = cv2.resize(img1, (0,0), fx=0.8, fy=0.8)		
+
+		# code.interact(local=locals())
+
+		
 
 	
 		listofpixels2 = recSearch(seedpixel, img2, img2[seedpixel])
@@ -156,9 +185,6 @@ for imageCount in xrange(len(list_of_images) - 1):
 		print 'overlap (' + str(n) + '/' + str(numberOfColors) + '): ' + str(percent_overlap)
 		#print '\n'
 
-	
-
-		continue
 
 
 
