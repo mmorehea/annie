@@ -38,13 +38,26 @@ def waterShedSearch(searchSpace, img, color):
 	startY = viablePixels[1][0]
 	return recSearch([startX, startY], img, color)
 
-
+#  /*
+# ███████ ██ ███    ██ ██████   ██████ ███████ ███    ██ ████████ ██████   ██████  ██ ██████
+# ██      ██ ████   ██ ██   ██ ██      ██      ████   ██    ██    ██   ██ ██    ██ ██ ██   ██
+# █████   ██ ██ ██  ██ ██   ██ ██      █████   ██ ██  ██    ██    ██████  ██    ██ ██ ██   ██
+# ██      ██ ██  ██ ██ ██   ██ ██      ██      ██  ██ ██    ██    ██   ██ ██    ██ ██ ██   ██
+# ██      ██ ██   ████ ██████   ██████ ███████ ██   ████    ██    ██   ██  ██████  ██ ██████
+# */
 def findCentroid(listofpixels):
 	rows = [p[0] for p in listofpixels]
 	cols = [p[1] for p in listofpixels]
 	centroid = int(round(np.mean(rows))), int(round(np.mean(cols)))
 	return centroid
 
+# /*
+# ███████ ██ ███    ██ ██████  ███    ██ ███████  █████  ██████  ███████ ███████ ████████
+# ██      ██ ████   ██ ██   ██ ████   ██ ██      ██   ██ ██   ██ ██      ██         ██
+# █████   ██ ██ ██  ██ ██   ██ ██ ██  ██ █████   ███████ ██████  █████   ███████    ██
+# ██      ██ ██  ██ ██ ██   ██ ██  ██ ██ ██      ██   ██ ██   ██ ██           ██    ██
+# ██      ██ ██   ████ ██████  ██   ████ ███████ ██   ██ ██   ██ ███████ ███████    ██
+# */
 def findNearest(img, startPoint):
 	directions = cycle([[0,1], [1,1], [1,0], [1,-1], [0,-1], [-1,-1], [-1,0], [-1,1]])
 	increment = 0
@@ -68,6 +81,8 @@ def findNearest(img, startPoint):
 		if cycleCounter % 8 == 0:
 			increment += 1
 
+		# print cycleCounter
+
 		try:
 			if img[checkPoint] > 0:
 				break
@@ -75,9 +90,15 @@ def findNearest(img, startPoint):
 			#code.interact(local=locals())
 			break
 
-
 	return checkPoint
 
+#  /*
+#  ██████  ███████ ████████ ███████ ███████ ███████ ██████  ██████  ██ ██   ██ ███████ ██
+# ██       ██         ██    ██      ██      ██      ██   ██ ██   ██ ██  ██ ██  ██      ██
+# ██   ███ █████      ██    ███████ █████   █████   ██   ██ ██████  ██   ███   █████   ██
+# ██    ██ ██         ██         ██ ██      ██      ██   ██ ██      ██  ██ ██  ██      ██
+#  ██████  ███████    ██    ███████ ███████ ███████ ██████  ██      ██ ██   ██ ███████ ███████
+# */
 def getSeedPixel(centroid1, images, imageCount, color, zspace):
 	shouldSkip = False
 	img = images[imageCount + zspace]
@@ -97,6 +118,15 @@ def getSeedPixel(centroid1, images, imageCount, color, zspace):
 
 	return shouldSkip, seedpixel
 
+
+# /*
+# ████████ ███████ ███████ ████████  ██████  ██    ██ ███████ ██████  ██       █████  ██████
+#    ██    ██      ██         ██    ██    ██ ██    ██ ██      ██   ██ ██      ██   ██ ██   ██
+#    ██    █████   ███████    ██    ██    ██ ██    ██ █████   ██████  ██      ███████ ██████
+#    ██    ██           ██    ██    ██    ██  ██  ██  ██      ██   ██ ██      ██   ██ ██
+#    ██    ███████ ███████    ██     ██████    ████   ███████ ██   ██ ███████ ██   ██ ██
+# */
+
 def testOverlap(setofpixels1, image2, seedpixel):
 	color2 = image2[seedpixel]
 	listofpixels2 = recSearch(seedpixel, image2, color2)
@@ -109,7 +139,13 @@ def testOverlap(setofpixels1, image2, seedpixel):
 
 	return percent_overlap, setofpixels2
 
-
+# /*
+# ██████  ███████  ██████ ███████ ███████  █████  ██████   ██████ ██   ██
+# ██   ██ ██      ██      ██      ██      ██   ██ ██   ██ ██      ██   ██
+# ██████  █████   ██      ███████ █████   ███████ ██████  ██      ███████
+# ██   ██ ██      ██           ██ ██      ██   ██ ██   ██ ██      ██   ██
+# ██   ██ ███████  ██████ ███████ ███████ ██   ██ ██   ██  ██████ ██   ██
+# */
 def recSearch(pixel, img, color):
 	front = [pixel]
 	found = [pixel]
@@ -133,11 +169,20 @@ def recSearch(pixel, img, color):
 					front.append([neighbor[0], neighbor[1]])
 					foundGrid[neighbor[0], neighbor[1]] = 1
 					counter = counter + 1
+
 					#found.append([neighbor[0], neighbor[1]])
 	found = np.where(foundGrid == 1)
 	found = zip(found[0],found[1])
 	return found
 
+
+# /*
+# ███    ███  █████  ██ ███    ██
+# ████  ████ ██   ██ ██ ████   ██
+# ██ ████ ██ ███████ ██ ██ ██  ██
+# ██  ██  ██ ██   ██ ██ ██  ██ ██
+# ██      ██ ██   ██ ██ ██   ████
+# */
 
 # construct the argument parser and parse the arguments
 # ap = argparse.ArgumentParser()
