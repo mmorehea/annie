@@ -203,8 +203,8 @@ for i, path in enumerate(list_of_image_paths):
 
 start = timer()
 
-stopAt = 50
-for imageCount, image1 in enumerate(images[:stopAt]):
+# stopAt = 50
+for imageCount, image1 in enumerate(images):
 
 
 	print '\n'
@@ -265,7 +265,7 @@ for imageCount, image1 in enumerate(images[:stopAt]):
 
 		while percent_overlap < 0.5:
 			zspace += 1
-			# if zspace > 1:
+			# 	if zspace > 1:
 				# print '\tzspace: ' + str(zspace)
 
 			if zspace > 7:
