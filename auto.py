@@ -129,7 +129,8 @@ def getSeedPixel(centroid1, images, imageCount, color, zspace):
 
 def testOverlap(setofpixels1, image2, seedpixel):
 	color2 = image2[seedpixel]
-	listofpixels2 = recSearch(seedpixel, image2, color2)
+	whereColor = np.where(image2==color2)
+	listofpixels2 = zip(whereColor[0],whereColor[1])
 	setofpixels2 = set(listofpixels2)
 
 	set_intersection = setofpixels1 & setofpixels2
@@ -195,9 +196,10 @@ dirr = sys.argv[1]
 list_of_image_paths = sorted(glob.glob(dirr +'*'))
 
 images = []
-for path in list_of_image_paths:
+for i, path in enumerate(list_of_image_paths):
 	im = cv2.imread(path, -1)
 	images.append(im)
+	print 'Loaded image ' + str(i + 1) + '/' + str(len(list_of_image_paths))
 
 start = timer()
 
@@ -263,10 +265,10 @@ for imageCount, image1 in enumerate(images[:stopAt]):
 
 		while percent_overlap < 0.5:
 			zspace += 1
-			if zspace > 1:
-				print '\tzspace: ' + str(zspace)
+			# if zspace > 1:
+				# print '\tzspace: ' + str(zspace)
 
-			if zspace > 5:
+			if zspace > 7:
 				shouldSkip = True
 			else:
 				# If it can't find a color below by way of centroid or median, it will skip that color
@@ -278,7 +280,7 @@ for imageCount, image1 in enumerate(images[:stopAt]):
 
 			image2 = images[imageCount + zspace]
 			percent_overlap, setofpixels2 = testOverlap(setofpixels1, image2, seedpixel)
-			print 'Percent overlap: ' + str(percent_overlap)
+			# print 'Percent overlap: ' + str(percent_overlap)
 
 		if shouldSkip:
 			continue
