@@ -101,8 +101,13 @@ def findNearest(img, startPoint):
 # */
 def getSeedPixel(centroid1, images, imageCount, color, zspace):
 	shouldSkip = False
-	img = images[imageCount + zspace]
 	seedpixel = (0,0)
+	try:
+		img = images[imageCount + zspace]
+	except:
+		shouldSkip = True
+		print 'Index out of bounds'
+		return shouldSkip, seedpixel
 
 	if img[centroid1] == 0:
 		seedpixel = findNearest(img, centroid1)
@@ -265,13 +270,11 @@ for imageCount, image1 in enumerate(images):
 
 		while percent_overlap < 0.5:
 			zspace += 1
-			# 	if zspace > 1:
-				# print '\tzspace: ' + str(zspace)
 
 			if zspace > 7:
 				shouldSkip = True
 			else:
-				# If it can't find a color below by way of centroid or median, it will skip that color
+				# If it can't find a color below, it will skip that color
 				shouldSkip, seedpixel = getSeedPixel(centroid1, images, imageCount, color, zspace)
 				# cv2.circle(image1, (seedpixel[1], seedpixel[0]), 5, 6383, -1)
 
@@ -280,7 +283,15 @@ for imageCount, image1 in enumerate(images):
 
 			image2 = images[imageCount + zspace]
 			percent_overlap, setofpixels2 = testOverlap(setofpixels1, image2, seedpixel)
+
+			# if percent_overlap < 0.1:
+			# 	shouldSkip = True
+			# 	break
+
 			# print 'Percent overlap: ' + str(percent_overlap)
+			if zspace > 1:
+				print '\tzspace: ' + str(zspace)
+				# code.interact(local=locals())
 
 		if shouldSkip:
 			continue
