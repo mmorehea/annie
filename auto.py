@@ -289,8 +289,8 @@ for imageCount, image1 in enumerate(images):
 			# 	break
 
 			# print 'Percent overlap: ' + str(percent_overlap)
-			if zspace > 1:
-				print '\tzspace: ' + str(zspace)
+			# if zspace > 1:
+			# 	print '\tzspace: ' + str(zspace)
 				# code.interact(local=locals())
 
 		if shouldSkip:
