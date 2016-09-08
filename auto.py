@@ -245,36 +245,14 @@ for imageCount, image1 in enumerate(images[:stopAt]):
 
 
 	for n, color in enumerate(colorVals):
-		code.interact(local=locals())
 		print 'Image ' + str(imageCount + 1) + '/' + str(len(images)) + ', '+ 'Color ' + str(n + 1) + '/' + str(len(colorVals))
 
-		# print color
-
-
-<<<<<<< HEAD
-		code.interact(local=locals())
-		continue
-
-		if img2[centroid1] == 0:
-			if img2[median1] == 0:
-				print 'Found 0, skipping color ' + str(color)
-				continue
-			else:
-				seedpixel = median1
-		else:
-			seedpixel = centroid1
-
-
-		listofpixels2 = recSearch(seedpixel, img2, img2[seedpixel])
-		setofpixels2 = set(listofpixels2)
-=======
 		where = np.where(image1 == color)
 		listofpixels1 = zip(list(where[0]), list(where[1]))
 		setofpixels1 = set(listofpixels1)
 
 
 		centroid1 = findCentroid(listofpixels1)
->>>>>>> 8f7dd2dd8c53c63779a4fbe58e96e0c878946e05
 
 		# Makes a purple centroid
 		# A cv point is defined by column, row, opposite to a numpy array
@@ -282,12 +260,8 @@ for imageCount, image1 in enumerate(images[:stopAt]):
 
 		# Need condition for when its the same color
 
-<<<<<<< HEAD
-
-=======
 		percent_overlap = 0
 		zspace = 0
->>>>>>> 8f7dd2dd8c53c63779a4fbe58e96e0c878946e05
 
 		while percent_overlap < 0.5:
 			zspace += 1
