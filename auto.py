@@ -131,17 +131,18 @@ for imageCount in xrange(len(list_of_images) - 1):
 
 
 		code.interact(local=locals())
+		continue
 
 		if img2[centroid1] == 0:
 			if img2[median1] == 0:
-				print 'Found 0, skipping color ' + str(color) 
+				print 'Found 0, skipping color ' + str(color)
 				continue
 			else:
 				seedpixel = median1
 		else:
 			seedpixel = centroid1
 
-	
+
 		listofpixels2 = recSearch(seedpixel, img2, img2[seedpixel])
 		setofpixels2 = set(listofpixels2)
 
@@ -156,7 +157,7 @@ for imageCount in xrange(len(list_of_images) - 1):
 		print 'overlap (' + str(n) + '/' + str(numberOfColors) + '): ' + str(percent_overlap)
 		#print '\n'
 
-	
+
 
 		continue
 
