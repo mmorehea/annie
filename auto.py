@@ -196,20 +196,20 @@ def recSearch(pixel, img, color):
 # args = vars(ap.parse_args())
 
 dirr = sys.argv[1]
+stopAt = 200
 
 # load the image, clone it, and setup the mouse callback function
 list_of_image_paths = sorted(glob.glob(dirr +'*'))
 
 images = []
-for i, path in enumerate(list_of_image_paths):
+for i, path in enumerate(list_of_image_paths[:stopAt]):
 	im = cv2.imread(path, -1)
 	images.append(im)
 	print 'Loaded image ' + str(i + 1) + '/' + str(len(list_of_image_paths))
 
 start = timer()
 
-# stopAt = 50
-for imageCount, image1 in enumerate(images):
+for imageCount, image1 in enumerate(images[:stopAt]):
 
 
 	print '\n'
@@ -226,27 +226,26 @@ for imageCount, image1 in enumerate(images):
 
 	numberOfColors = len(colorVals)
 
-	# image1 = np.zeros(img1.shape, np.uint8)
-
 
 	# For filtering the shapes by size and writing to another folder
-	# toRemove = []
-	# for color in colorVals:
-	# 	where = np.where(image1 == color)
-	# 	listofpixels1 = zip(list(where[0]), list(where[1]))
-	# 	setofpixels1 = set(listofpixels1)
-	# 	if len(setofpixels1) < 12000:
-	# 		toRemove.append(color)
-	# 		for pixel in setofpixels1:
-	# 			image1[pixel] = 0
-	# for each in toRemove:
-	# 	colorVals.remove(each)
-	# cv2.imwrite('crop2/' + list_of_image_paths[imageCount][list_of_image_paths[imageCount].index('/')+1:], image1)
-	# continue
+	toRemove = []
+	for color in colorVals:
+		where = np.where(image1 == color)
+		listofpixels1 = zip(list(where[0]), list(where[1]))
+		setofpixels1 = set(listofpixels1)
+		if len(setofpixels1) > 1000:
+			toRemove.append(color)
+			for pixel in setofpixels1:
+				image1[pixel] = 0
+	for each in toRemove:
+		colorVals.remove(each)
+	cv2.imwrite('littlecrop/' + list_of_image_paths[imageCount][list_of_image_paths[imageCount].index('/')+1:], image1)
+	continue
 
 
 
 	for n, color in enumerate(colorVals):
+		code.interact(local=locals())
 		print 'Image ' + str(imageCount + 1) + '/' + str(len(images)) + ', '+ 'Color ' + str(n + 1) + '/' + str(len(colorVals))
 
 		# print color
