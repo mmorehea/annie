@@ -9,9 +9,6 @@ import sys
 from timeit import default_timer as timer
 import os
 from itertools import cycle
-from skimage.feature import peak_local_max
-from skimage.morphology import watershed
-from scipy import ndimage
 
 np.set_printoptions(threshold=np.inf)
 
@@ -35,30 +32,11 @@ def buildColorMap(img):
 	#print colorMap
 	return colorMap
 
-# /*
-# ██     ██  █████  ████████ ███████ ██████  ███████ ██   ██ ███████ ██████
-# ██     ██ ██   ██    ██    ██      ██   ██ ██      ██   ██ ██      ██   ██
-# ██  █  ██ ███████    ██    █████   ██████  ███████ ███████ █████   ██   ██
-# ██ ███ ██ ██   ██    ██    ██      ██   ██      ██ ██   ██ ██      ██   ██
-#  ███ ███  ██   ██    ██    ███████ ██   ██ ███████ ██   ██ ███████ ██████
-# */
-def waterShed(img16):
-	img8 = (img16/256).astype('uint8')
-
-	contours = cv2.findContours(img8.copy(),cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[1]
-	blobs = []
-	for cnt in contours:
-
-		mask = np.zeros(img8.shape,np.uint8)
-		cv2.drawContours(mask,[cnt],0,255,-1)
-		pixelpoints = np.transpose(np.nonzero(mask))
-		blobs.append([(x[0],x[1]) for x in pixelpoints])
-
-		# convert back to row, column and store as list of points
-		# cnt = [(x[0][1], x[0][0]) for x in cnt]
-		# newconts.append(cnt)
-
-	return blobs
+def waterShedSearch(searchSpace, img, color):
+	viablePixels = np.where(searchSpace == color)
+	startX = viablePixels[0][0]
+	startY = viablePixels[1][0]
+	return recSearch([startX, startY], img, color)
 
 #  /*
 # ███████ ██ ███    ██ ██████   ██████ ███████ ███    ██ ████████ ██████   ██████  ██ ██████
@@ -125,15 +103,20 @@ def findNearest(img, startPoint):
 # ██    ██ ██         ██         ██ ██      ██      ██   ██ ██      ██  ██ ██  ██      ██
 #  ██████  ███████    ██    ███████ ███████ ███████ ██████  ██      ██ ██   ██ ███████ ███████
 # */
-def getSeedPixel(centroid, img, color):
+def getSeedPixel(centroid1, images, imageCount, color, zspace):
 	shouldSkip = False
 	seedpixel = (0,0)
+	try:
+		img = images[imageCount + zspace]
+	except:
+		shouldSkip = True
+		# print 'Index out of bounds'
+		return shouldSkip, seedpixel
 
-
-	if img[centroid] == 0:
-		seedpixel = findNearest(img, centroid)
+	if img[centroid1] == 0:
+		seedpixel = findNearest(img, centroid1)
 	else:
-		seedpixel = centroid
+		seedpixel = centroid1
 	try:
 		if img[seedpixel] == color:
 			shouldSkip = True
@@ -153,14 +136,18 @@ def getSeedPixel(centroid, img, color):
 #    ██    ███████ ███████    ██     ██████    ████   ███████ ██   ██ ███████ ██   ██ ██
 # */
 
-def testOverlap(setofpixels1, setofpixels2):
+def testOverlap(setofpixels1, image2, seedpixel):
+	color2 = image2[seedpixel]
+	whereColor = np.where(image2==color2)
+	listofpixels2 = zip(whereColor[0],whereColor[1])
+	setofpixels2 = set(listofpixels2)
 
 	set_intersection = setofpixels1 & setofpixels2
 	set_union = setofpixels1 | setofpixels2
 
 	percent_overlap = float(len(set_intersection)) / len(set_union)
 
-	return percent_overlap
+	return percent_overlap, setofpixels2
 
 # /*
 # ██████  ███████  ██████ ███████ ███████  █████  ██████   ██████ ██   ██
@@ -206,6 +193,11 @@ def recSearch(pixel, img, color):
 # ██  ██  ██ ██   ██ ██ ██  ██ ██
 # ██      ██ ██   ██ ██ ██   ████
 # */
+
+# construct the argument parser and parse the arguments
+# ap = argparse.ArgumentParser()
+# ap.add_argument("-d", "--dir", required=True, help="Path to the directory")
+# args = vars(ap.parse_args())
 
 dirr = sys.argv[1]
 # stopAt = 200
@@ -263,6 +255,7 @@ for imageCount, image1 in enumerate(images):
 		listofpixels1 = zip(list(where[0]), list(where[1]))
 		setofpixels1 = set(listofpixels1)
 
+
 		centroid1 = findCentroid(listofpixels1)
 
 		# Makes a purple centroid
@@ -271,47 +264,55 @@ for imageCount, image1 in enumerate(images):
 
 		# Need condition for when its the same color
 
-		try:
-			image2 = images[imageCount + 1]
-		except:
-			continue
+		percent_overlap = 0
+		zspace = 0
 
+		if len(listofpixels1) < 1:
+			percent_overlap = 1
+			shouldSkip = True
 
-		shouldSkip, seedpixel = getSeedPixel(centroid1, image2, color)
+		while percent_overlap < 0.5:
+			zspace += 1
+
+			if zspace > 7:
+				shouldSkip = True
+			else:
+				# If it can't find a color below, it will skip that color
+				shouldSkip, seedpixel = getSeedPixel(centroid1, images, imageCount, color, zspace)
+				# cv2.circle(image1, (seedpixel[1], seedpixel[0]), 4, 6383, -1)
+
+			if shouldSkip:
+				break
+
+			image2 = images[imageCount + zspace]
+			percent_overlap, setofpixels2 = testOverlap(setofpixels1, image2, seedpixel)
+
+			# if percent_overlap < 0.1:
+			# 	shouldSkip = True
+			# 	break
+
+			# print 'Percent overlap: ' + str(percent_overlap)
+			# if zspace > 1:
+			# 	print '\tzspace: ' + str(zspace)
+				# code.interact(local=locals())
 
 		if shouldSkip:
 			continue
 
-		color2 = image2[seedpixel]
-		whereColor = np.where(image2==color2)
-		listofpixels2 = zip(whereColor[0],whereColor[1])
-		setofpixels2 = set(listofpixels2)
+		# print image2[list(setofpixels2)[0]]
 
-		percent_overlap = testOverlap(setofpixels1, setofpixels2)
+		cv2.circle(image1, (seedpixel[1], seedpixel[0]), 4, 6383, -1)
+
+		for pixel in setofpixels2:
+			image2[pixel] = color
+		# print image2[list(setofpixels2)[0]]
 
 
-		# cv2.circle(image1, (seedpixel[1], seedpixel[0]), 4, 6383, -1)
 
-		if percent_overlap > 0.75:
-			for pixel in setofpixels2:
-				image2[pixel] = color
-		else:
-			imageD = np.zeros((image1.shape[0], image1.shape[1]))
-			for pixel in setofpixels2:
-				imageD[pixel] = color2
+		# Might want to interpolate here, but unsure of implementation
 
-			# labels = waterShed(imageD, color2)
 
-			imageF = np.zeros((image1.shape[0], image1.shape[1]))
-			for pixel in setofpixels1:
-				imageF[pixel] = color
 
-			if imageCount == 0 and n == 95:
-				# cv2.imshow('F', imageF)
-				# cv2.imshow('D', imageD)
-				# cv2.waitKey()
-				blobs = waterShed(imageD)
-				code.interact(local=locals())
 
 		# cnt = np.array([[each] for each in listofpixels1],dtype='float32')
 
