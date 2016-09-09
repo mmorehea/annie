@@ -302,16 +302,28 @@ for imageCount, image1 in enumerate(images):
 
 			# labels = waterShed(imageD, color2)
 
-			imageF = np.zeros((image1.shape[0], image1.shape[1]))
-			for pixel in setofpixels1:
-				imageF[pixel] = color
+			# imageF = np.zeros((image1.shape[0], image1.shape[1]))
+			# for pixel in setofpixels1:
+			# 	imageF[pixel] = color
 
-			if imageCount == 0 and n == 95:
+			# if imageCount == 0 and n == 95:
 				# cv2.imshow('F', imageF)
 				# cv2.imshow('D', imageD)
 				# cv2.waitKey()
-				blobs = waterShed(imageD)
-				code.interact(local=locals())
+			blobs = waterShed(imageD)
+			percent_overlap = 0
+
+			# NEED TO REGULATE FOR BLOBS BEING < length 2
+
+			for blob in blobs:
+				pt = testOverlap(setofpixels1, set(blob))
+				if pt > percent_overlap:
+					percent_overlap = pt
+					setofpixels2 = set(blob)
+
+
+			for pixel in setofpixels2:
+				image2[pixel] = color
 
 		# cnt = np.array([[each] for each in listofpixels1],dtype='float32')
 
@@ -322,7 +334,7 @@ for imageCount, image1 in enumerate(images):
 		# display_img1 = cv2.resize(img1, (0,0), fx=0.8, fy=0.8)
 
 		# code.interact(local=locals())
-	cv2.imwrite('littleresult2/' + list_of_image_paths[imageCount][list_of_image_paths[imageCount].index('/')+1:], image1)
+	cv2.imwrite('result5/' + list_of_image_paths[imageCount][list_of_image_paths[imageCount].index('/')+1:], image1)
 
 code.interact(local=locals())
 
