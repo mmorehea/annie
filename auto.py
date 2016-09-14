@@ -73,7 +73,7 @@ def findCentroid(listofpixels):
 	try:
 		centroid = int(round(np.mean(rows))), int(round(np.mean(cols)))
 	except:
-		code.interact(local=locals())
+		# code.interact(local=locals())
 		centroid = (0,0)
 	return centroid
 
@@ -291,25 +291,20 @@ for imageCount, image1 in enumerate(images):
 
 
 		# cv2.circle(image1, (seedpixel[1], seedpixel[0]), 4, 6383, -1)
+		cv2.putText(image1, str(n), (centroid1[1],centroid1[0]), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.4, int(color), 1,cv2.LINE_AA)
 
 		if percent_overlap > 0.75:
 			for pixel in setofpixels2:
 				image2[pixel] = color
 		else:
-			imageD = np.zeros((image1.shape[0], image1.shape[1]))
+			imageD = np.zeros(image1.shape, np.uint16)
 			for pixel in setofpixels2:
 				imageD[pixel] = color2
 
 			# labels = waterShed(imageD, color2)
 
-			# imageF = np.zeros((image1.shape[0], image1.shape[1]))
-			# for pixel in setofpixels1:
-			# 	imageF[pixel] = color
 
-			# if imageCount == 0 and n == 95:
-				# cv2.imshow('F', imageF)
-				# cv2.imshow('D', imageD)
-				# cv2.waitKey()
+
 			blobs = waterShed(imageD)
 			percent_overlap = 0
 
@@ -325,6 +320,22 @@ for imageCount, image1 in enumerate(images):
 			for pixel in setofpixels2:
 				image2[pixel] = color
 
+			# imageF = np.zeros(image1.shape, np.uint16)
+			# for pixel in setofpixels1:
+			# 	imageF[pixel] = color
+			#
+			# imageB = np.zeros(image1.shape, np.uint16)
+			# for pixel in setofpixels2:
+			# 	imageB[pixel] = color
+			#
+			# cv2.imshow('F', imageF)
+			# cv2.imshow('D', imageD)
+			# cv2.imshow('B', imageB)
+			# cv2.waitKey()
+			#
+			# code.interact(local=locals())
+
+
 		# cnt = np.array([[each] for each in listofpixels1],dtype='float32')
 
 		# ctr = np.array(cnt).reshape((-1,1,2)).astype(np.int32)
@@ -334,7 +345,8 @@ for imageCount, image1 in enumerate(images):
 		# display_img1 = cv2.resize(img1, (0,0), fx=0.8, fy=0.8)
 
 		# code.interact(local=locals())
-	cv2.imwrite('result5/' + list_of_image_paths[imageCount][list_of_image_paths[imageCount].index('/')+1:], image1)
+
+	cv2.imwrite('littleresult3/' + list_of_image_paths[imageCount][list_of_image_paths[imageCount].index('/')+1:], image1)
 
 code.interact(local=locals())
 
