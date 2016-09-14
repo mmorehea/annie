@@ -221,12 +221,12 @@ for i, path in enumerate(list_of_image_paths):
 
 start = timer()
 
-for imageCount, image1 in enumerate(images):
+for imageCount, image1 in enumerate(images[:5]):
 	# for displaying individual blobs
-	# zSelect = 4
-	# nSelect = 46
-	# if imageCount+1 != zSelect:
-	# 	continue
+	zSelect = 4
+	nSelect = 46
+	if imageCount+1 != zSelect:
+		continue
 
 
 	print '\n'
@@ -263,8 +263,8 @@ for imageCount, image1 in enumerate(images):
 
 	for n, color in enumerate(colorVals):
 		# print 'Image ' + str(imageCount + 1) + '/' + str(len(images)) + ', '+ 'Color ' + str(n + 1) + '/' + str(len(colorVals))
-		# if n != nSelect:
-		# 	continue
+		if n != nSelect:
+			continue
 
 		# code.interact(local=locals())
 
@@ -289,13 +289,13 @@ for imageCount, image1 in enumerate(images):
 		shouldSkip, seedpixel = getSeedPixel(centroid1, image2, color)
 
 		# for displaying particular blobs
-		# if imageCount+1 == zSelect and n == nSelect:
-		# 	imageQ = np.zeros(image1.shape, np.uint16)
-		# 	for pixel in setofpixels1:
-		# 		imageQ[pixel] = color
-		# 	cv2.imshow('Q', imageQ)
-		# 	cv2.waitKey()
-		# 	code.interact(local=locals())
+		if imageCount+1 == zSelect and n == nSelect:
+			imageQ = np.zeros(image1.shape, np.uint16)
+			for pixel in setofpixels1:
+				imageQ[pixel] = color
+			cv2.imshow('Q', imageQ)
+			cv2.waitKey()
+			code.interact(local=locals())
 
 
 		if shouldSkip:
@@ -309,9 +309,8 @@ for imageCount, image1 in enumerate(images):
 		percent_overlap = testOverlap(setofpixels1, setofpixels2)
 
 
-		# cv2.circle(image1, (seedpixel[1], seedpixel[0]), 1, int(color2), -1)
-		# cv2.putText(image1, str(n), (centroid1[1],centroid1[0]), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.6, int(color2), 1,cv2.LINE_AA)
-		# cv2.line(image1, (centroid1[1],centroid1[0]), (seedpixel[1], seedpixel[0]), int(color2), 1)
+		# cv2.circle(image1, (seedpixel[1], seedpixel[0]), 4, 6383, -1)
+		cv2.putText(image1, str(n), (centroid1[1],centroid1[0]), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.6, int(color2), 1,cv2.LINE_AA)
 
 
 		if percent_overlap > 0.75:
@@ -367,7 +366,7 @@ for imageCount, image1 in enumerate(images):
 
 		# code.interact(local=locals())
 
-	cv2.imwrite('littleresult/' + list_of_image_paths[imageCount][list_of_image_paths[imageCount].index('/')+1:], image1)
+	cv2.imwrite('result/' + list_of_image_paths[imageCount][list_of_image_paths[imageCount].index('/')+1:], image1)
 
 # code.interact(local=locals())
 
