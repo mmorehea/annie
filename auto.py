@@ -25,7 +25,7 @@ def buildColorMap(img):
 	colorMap = {0: 0}
 	x, y = img.shape
 	counter = 0
-	uniqueValues = np.unique(img)
+	uniqueValues = sorted(np.unique(img))
 	for each in uniqueValues:
 			if each in colorMap.values():
 				continue
@@ -309,9 +309,9 @@ for imageCount, image1 in enumerate(images):
 		percent_overlap = testOverlap(setofpixels1, setofpixels2)
 
 
-		# cv2.circle(image1, (seedpixel[1], seedpixel[0]), 1, int(color2), -1)
-		# cv2.putText(image1, str(n), (centroid1[1],centroid1[0]), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.6, int(color2), 1,cv2.LINE_AA)
-		# cv2.line(image1, (centroid1[1],centroid1[0]), (seedpixel[1], seedpixel[0]), int(color2), 1)
+		cv2.circle(image1, (seedpixel[1], seedpixel[0]), 1, int(color2), -1)
+		cv2.putText(image1, str(n), (centroid1[1],centroid1[0]), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.6, int(color2), 1,cv2.LINE_AA)
+		cv2.line(image1, (centroid1[1],centroid1[0]), (seedpixel[1], seedpixel[0]), int(color2), 1)
 
 
 		if percent_overlap > 0.75:
@@ -367,7 +367,7 @@ for imageCount, image1 in enumerate(images):
 
 		# code.interact(local=locals())
 
-	cv2.imwrite('littleresult/' + list_of_image_paths[imageCount][list_of_image_paths[imageCount].index('/')+1:], image1)
+	cv2.imwrite('littleresult2/' + list_of_image_paths[imageCount][list_of_image_paths[imageCount].index('/')+1:], image1)
 
 # code.interact(local=locals())
 

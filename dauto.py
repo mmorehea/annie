@@ -25,7 +25,7 @@ def buildColorMap(img):
 	colorMap = {0: 0}
 	x, y = img.shape
 	counter = 0
-	uniqueValues = np.unique(img)
+	uniqueValues = sorted(np.unique(img))
 	for each in uniqueValues:
 			if each in colorMap.values():
 				continue
@@ -221,10 +221,10 @@ for i, path in enumerate(list_of_image_paths):
 
 start = timer()
 
-for imageCount, image1 in enumerate(images[:5]):
+for imageCount, image1 in enumerate(images):
 	# for displaying individual blobs
-	zSelect = 4
-	nSelect = 46
+	zSelect = 76
+	nSelect = 291
 	if imageCount+1 != zSelect:
 		continue
 
