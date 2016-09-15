@@ -222,7 +222,7 @@ for i, path in enumerate(list_of_image_paths):
 
 start = timer()
 
-blobArray = []
+
 for imageCount, image1 in enumerate(images):
 	# for displaying individual blobs
 	# zSelect = 4
@@ -230,7 +230,6 @@ for imageCount, image1 in enumerate(images):
 	# if imageCount+1 != zSelect:
 	# 	continue
 
-	code.interact(local=locals())
 	print '\n'
 	print imageCount
 	end = timer()
@@ -272,11 +271,19 @@ for imageCount, image1 in enumerate(images):
 
 		where = np.where(image1 == color)
 		listofpixels1 = zip(list(where[0]), list(where[1]))
+		blobDict[n] = listofpixels1
+
+	# pickle.dump(blobDict, open('pickles/blobDict' + str(imageCount) + '.p', 'wb'))
+
+	# Split into 2 for loops so that circles, lines, and numbers drawn do not affect the blob dictionary as it's being made
+
+	for n, color in enumerate(colorVals):
+
+		listofpixels1 = blobDict[n]
+
 		setofpixels1 = set(listofpixels1)
 
 		centroid1 = findCentroid(listofpixels1)
-
-		blobDict[n] = listofpixels1
 
 		# Makes a purple centroid
 		# A cv point is defined by column, row, opposite to a numpy array
@@ -310,15 +317,17 @@ for imageCount, image1 in enumerate(images):
 		listofpixels2 = zip(whereColor[0],whereColor[1])
 		setofpixels2 = set(listofpixels2)
 
+
 		percent_overlap = testOverlap(setofpixels1, setofpixels2)
 
 
-		cv2.circle(image1, (seedpixel[1], seedpixel[0]), 1, int(color2), -1)
-		cv2.putText(image1, str(n), (centroid1[1],centroid1[0]), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.6, int(color2), 1,cv2.LINE_AA)
-		cv2.line(image1, (centroid1[1],centroid1[0]), (seedpixel[1], seedpixel[0]), int(color2), 1)
+		# cv2.circle(image1, (seedpixel[1], seedpixel[0]), 1, int(color2), -1)
+		# cv2.putText(image1, str(n), (centroid1[1],centroid1[0]), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.6, int(color2), 1,cv2.LINE_AA)
+		# cv2.line(image1, (centroid1[1],centroid1[0]), (seedpixel[1], seedpixel[0]), int(color2), 1)
 
-
-		if percent_overlap > 0.75:
+		if percent_overlap == 0:
+			continue
+		elif percent_overlap > 0.75:
 			for pixel in setofpixels2:
 				image2[pixel] = color
 		else:
@@ -370,10 +379,9 @@ for imageCount, image1 in enumerate(images):
 		# display_img1 = cv2.resize(img1, (0,0), fx=0.8, fy=0.8)
 
 		# code.interact(local=locals())
-		blobArray.append(blobDict)
 
-	cv2.imwrite('littleresult2/' + list_of_image_paths[imageCount][list_of_image_paths[imageCount].index('/')+1:], image1)
-	pickle.dump(blobArray, open('blobArray.p', 'wb'))
+	cv2.imwrite('littleresult4/' + list_of_image_paths[imageCount][list_of_image_paths[imageCount].index('/')+1:], image1)
+
 
 # code.interact(local=locals())
 
