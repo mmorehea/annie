@@ -12,6 +12,7 @@ from itertools import cycle
 from skimage.feature import peak_local_max
 from skimage.morphology import watershed
 from scipy import ndimage
+import cPickle as pickle
 
 np.set_printoptions(threshold=np.inf)
 
@@ -221,6 +222,7 @@ for i, path in enumerate(list_of_image_paths):
 
 start = timer()
 
+blobArray = []
 for imageCount, image1 in enumerate(images):
 	# for displaying individual blobs
 	# zSelect = 4
@@ -260,7 +262,7 @@ for imageCount, image1 in enumerate(images):
 	# continue
 
 
-
+	blobDict = {}
 	for n, color in enumerate(colorVals):
 		# print 'Image ' + str(imageCount + 1) + '/' + str(len(images)) + ', '+ 'Color ' + str(n + 1) + '/' + str(len(colorVals))
 		# if n != nSelect:
@@ -273,6 +275,8 @@ for imageCount, image1 in enumerate(images):
 		setofpixels1 = set(listofpixels1)
 
 		centroid1 = findCentroid(listofpixels1)
+
+		blobDict[n] = listofpixels1
 
 		# Makes a purple centroid
 		# A cv point is defined by column, row, opposite to a numpy array
@@ -366,8 +370,10 @@ for imageCount, image1 in enumerate(images):
 		# display_img1 = cv2.resize(img1, (0,0), fx=0.8, fy=0.8)
 
 		# code.interact(local=locals())
+		blobArray.append(blobDict)
 
 	cv2.imwrite('littleresult2/' + list_of_image_paths[imageCount][list_of_image_paths[imageCount].index('/')+1:], image1)
+	pickle.dump(blobArray, open('blobArray.p', 'wb'))
 
 # code.interact(local=locals())
 
