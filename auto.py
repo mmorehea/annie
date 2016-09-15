@@ -230,7 +230,7 @@ for imageCount, image1 in enumerate(images):
 	# if imageCount+1 != zSelect:
 	# 	continue
 
-
+	code.interact(local=locals())
 	print '\n'
 	print imageCount
 	end = timer()
