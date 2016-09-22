@@ -222,7 +222,8 @@ for i, path in enumerate(list_of_image_paths):
 
 start = timer()
 
-
+zTracker = {}
+# for each blob, stores 1) a zvalue indicating how far up it is connected to other blobs and 2) the blob that connected to it in the previous slice
 for imageCount, image1 in enumerate(images):
 	# for displaying individual blobs
 	# zSelect = 4
@@ -262,7 +263,7 @@ for imageCount, image1 in enumerate(images):
 
 
 	blobDict = {}
-	zTracker = {}
+	# stores for each blob in a given slice 1) the blob pixels 2) instantaneous z value and 3) n for the blob from previous slice that connected to it
 	for n, color in enumerate(colorVals):
 		# print 'Image ' + str(imageCount + 1) + '/' + str(len(images)) + ', '+ 'Color ' + str(n + 1) + '/' + str(len(colorVals))
 		# if n != nSelect:
@@ -272,22 +273,33 @@ for imageCount, image1 in enumerate(images):
 
 		where = np.where(image1 == color)
 		listofpixels1 = zip(list(where[0]), list(where[1]))
-		blobDict[n] = listofpixels1
+		blobDict[n] = [listofpixels1, 0, 0]
 
-	# pickle.dump(blobDict, open('pickles/blobDict' + str(imageCount) + '.p', 'wb'))
+
 
 	# Split into 2 for loops so that circles, lines, and numbers drawn do not affect the blob dictionary as it's being made
 
 	for n, color in enumerate(colorVals):
+		# print n
+		# print len(zTracker.keys())
 
-		listofpixels1 = blobDict[n]
+		# cv2.circle(image1, (seedpixel[1], seedpixel[0]), 1, int(color2), -1)
+		# cv2.putText(image1, str(n), (centroid1[1],centroid1[0]), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.6, int(color2), 1,cv2.LINE_AA)
+		# cv2.line(image1, (centroid1[1],centroid1[0]), (seedpixel[1], seedpixel[0]), int(color2), 1)
+
+		# if pickle.load(open('pickles/blobDict' + str(zz-1) + '.p', 'rb'))[nn]
+
+		listofpixels1 = blobDict[n][0]
 
 		setofpixels1 = set(listofpixels1)
 
 		centroid1 = findCentroid(listofpixels1)
 
 		if centroid1 not in zTracker.keys():
-			zTracker[centroid1] = 1
+			zTracker[centroid1] = [1, 0]
+
+		blobDict[n][1] = zTracker[centroid1][0]
+		blobDict[n][2] = zTracker[centroid1][1]
 
 		# Makes a purple centroid
 		# A cv point is defined by column, row, opposite to a numpy array
@@ -314,6 +326,7 @@ for imageCount, image1 in enumerate(images):
 
 
 		if shouldSkip:
+			del zTracker[centroid1]
 			continue
 
 		color2 = image2[seedpixel]
@@ -326,19 +339,23 @@ for imageCount, image1 in enumerate(images):
 
 		centroid2 = findCentroid(listofpixels2)
 
-		# cv2.circle(image1, (seedpixel[1], seedpixel[0]), 1, int(color2), -1)
-		# cv2.putText(image1, str(n), (centroid1[1],centroid1[0]), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.6, int(color2), 1,cv2.LINE_AA)
-		# cv2.line(image1, (centroid1[1],centroid1[0]), (seedpixel[1], seedpixel[0]), int(color2), 1)
+		cv2.circle(image1, (seedpixel[1], seedpixel[0]), 1, int(color2), -1)
+		cv2.putText(image1, str(n), (centroid1[1],centroid1[0]), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.6, int(color2), 1,cv2.LINE_AA)
+		cv2.line(image1, (centroid1[1],centroid1[0]), (seedpixel[1], seedpixel[0]), int(color2), 1)
 
 		if centroid2 in zTracker.keys():
 			if zTracker[centroid1] < zTracker[centroid2]:
+				del zTracker[centroid1]
 				continue
 
 		if percent_overlap == 0:
+			del zTracker[centroid1]
 			continue
 		elif percent_overlap > 0.75:
 			for pixel in setofpixels2:
 				image2[pixel] = color
+			pop = zTracker.pop(centroid1)
+			zTracker[centroid2] = [pop[0] + 1, n]
 		else:
 			imageD = np.zeros(image1.shape, np.uint16)
 			for pixel in setofpixels2:
@@ -363,7 +380,8 @@ for imageCount, image1 in enumerate(images):
 			for pixel in setofpixels2:
 				image2[pixel] = color
 
-			zTracker[centroid2] = zTracker.pop(centroid1) + 1
+			pop = zTracker.pop(centroid1)
+			zTracker[centroid2] = [pop[0] + 1, n]
 
 			# imageF = np.zeros(image1.shape, np.uint16)
 			# for pixel in setofpixels1:
@@ -381,6 +399,7 @@ for imageCount, image1 in enumerate(images):
 			# code.interact(local=locals())
 
 
+
 		# cnt = np.array([[each] for each in listofpixels1],dtype='float32')
 
 		# ctr = np.array(cnt).reshape((-1,1,2)).astype(np.int32)
@@ -390,8 +409,8 @@ for imageCount, image1 in enumerate(images):
 		# display_img1 = cv2.resize(img1, (0,0), fx=0.8, fy=0.8)
 
 		# code.interact(local=locals())
-
-	cv2.imwrite('littleresult4/' + list_of_image_paths[imageCount][list_of_image_paths[imageCount].index('/')+1:], image1)
+	pickle.dump(blobDict, open('picklesLR5/blobDict' + str(imageCount) + '.p', 'wb'))
+	cv2.imwrite('littleresult5/' + list_of_image_paths[imageCount][list_of_image_paths[imageCount].index('/')+1:], image1)
 
 
 # code.interact(local=locals())
