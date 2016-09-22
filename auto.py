@@ -262,6 +262,7 @@ for imageCount, image1 in enumerate(images):
 
 
 	blobDict = {}
+	zTracker = {}
 	for n, color in enumerate(colorVals):
 		# print 'Image ' + str(imageCount + 1) + '/' + str(len(images)) + ', '+ 'Color ' + str(n + 1) + '/' + str(len(colorVals))
 		# if n != nSelect:
@@ -284,6 +285,9 @@ for imageCount, image1 in enumerate(images):
 		setofpixels1 = set(listofpixels1)
 
 		centroid1 = findCentroid(listofpixels1)
+
+		if centroid1 not in zTracker.keys():
+			zTracker[centroid1] = 1
 
 		# Makes a purple centroid
 		# A cv point is defined by column, row, opposite to a numpy array
@@ -320,10 +324,15 @@ for imageCount, image1 in enumerate(images):
 
 		percent_overlap = testOverlap(setofpixels1, setofpixels2)
 
+		centroid2 = findCentroid(listofpixels2)
 
 		# cv2.circle(image1, (seedpixel[1], seedpixel[0]), 1, int(color2), -1)
 		# cv2.putText(image1, str(n), (centroid1[1],centroid1[0]), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.6, int(color2), 1,cv2.LINE_AA)
 		# cv2.line(image1, (centroid1[1],centroid1[0]), (seedpixel[1], seedpixel[0]), int(color2), 1)
+
+		if centroid2 in zTracker.keys():
+			if zTracker[centroid1] < zTracker[centroid2]:
+				continue
 
 		if percent_overlap == 0:
 			continue
@@ -353,6 +362,8 @@ for imageCount, image1 in enumerate(images):
 
 			for pixel in setofpixels2:
 				image2[pixel] = color
+
+			zTracker[centroid2] = zTracker.pop(centroid1) + 1
 
 			# imageF = np.zeros(image1.shape, np.uint16)
 			# for pixel in setofpixels1:
