@@ -18,15 +18,19 @@ zSelect = int(sys.argv[1])
 
 nSelect = int(sys.argv[2])
 
-blobDict = pickle.load(open('pickles/blobDict' + str(zSelect-1) + '.p', 'rb'))
+blobDict = pickle.load(open('picklesLR5/blobDict' + str(zSelect-1) + '.p', 'rb'))
 
-listofpixels = blobDict[nSelect]
+listofpixels = blobDict[nSelect][0]
+zValue = blobDict[nSelect][1]
+nFromPrevSlice = blobDict[nSelect][2]
 
 image = np.zeros(shape, np.uint16)
 
 for pixel in listofpixels:
 	image[pixel] = 99999
 
+print 'zValue: ' + str(zValue)
+print 'n from previous slice: ' + str(nFromPrevSlice)
 cv2.imshow('blob',image)
 cv2.waitKey()
 code.interact(local=locals())
