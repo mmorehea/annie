@@ -17,7 +17,7 @@ import cPickle as pickle
 np.set_printoptions(threshold=np.inf)
 
 class blob():
-	def __init__(self, imageCount, n, listofpixels, color, listofpixels_foundbelow, color_foundbelow, nFromPrevSlice, zValue):
+	def __init__(self, imageCount, n, listofpixels, color, listofpixels_foundbelow, color_foundbelow, nFromPrevSlice, zValue, skipped):
 		self.imageCount = imageCount
 		self.n = n
 		self.listofpixels = listofpixels
@@ -26,9 +26,11 @@ class blob():
 		self.color_foundbelow = color_foundbelow
 		self.nFromPrevSlice = nFromPrevSlice
 		self.zValue = zValue
+		self.skipped = skipped
 
 		self.centroid = findCentroid(listofpixels)
 		self.centroid_foundbelow = findCentroid(listofpixels_foundbelow)
+		self.percent_overlap_foundbelow = testOverlap(set(self.listofpixels), set(self.listofpixels_foundbelow))
 
 
 
@@ -218,22 +220,6 @@ def recSearch(pixel, img, color):
 	found = zip(found[0],found[1])
 	return found
 
-# /*
-# ███████ ██████  ██      ██ ████████ ██████  ██       ██████  ██████  ███████
-# ██      ██   ██ ██      ██    ██    ██   ██ ██      ██    ██ ██   ██ ██
-# ███████ ██████  ██      ██    ██    ██████  ██      ██    ██ ██████  ███████
-#      ██ ██      ██      ██    ██    ██   ██ ██      ██    ██ ██   ██      ██
-# ███████ ██      ███████ ██    ██    ██████  ███████  ██████  ██████  ███████
-# */
-def splitBlobs(blobList, listofpix, blobs):
-	blobToSplit = next((x for x in blobList if x.listofpixels == listofpix), None)
-	index = blobList.index(blobToSplit)
-
-	for i, blob in enumerate(blobs):
-		newblob = blob(blobToSplit.imageCount, )
-		blobList.insert(index + i,blob)
-	blobList.remove(blobToSplit)
-
 
 
 # /*
@@ -258,9 +244,9 @@ start = timer()
 
 zTracker = {}
 # for each blob, stores 1) a zvalue indicating how far up it is connected to other blobs and 2) the blob that connected to it in the previous slice
-for imageCount, image in enumerate(images):
+for imageCount, image1 in enumerate(images):
 
-	colorMap = buildColorMap(image)
+	colorMap = buildColorMap(image1)
 
 	# Omitting the first one because it's just 0 mapped to 0
 	colorVals = colorMap.values()[1:]
@@ -269,56 +255,47 @@ for imageCount, image in enumerate(images):
 
 	blobList = []
 	# stores for each blob in a given slice 1) the blob pixels 2) instantaneous z value and 3) n for the blob from previous slice that connected to it
-	for n, color in enumerate(colorVals):
+	for n, color1 in enumerate(colorVals):
 
-		where = np.where(image == color)
-		listofpixels = zip(list(where[0]), list(where[1]))
-
-
-		blob = blob(imageCount, n, listofpixels, color, [], 0, 0, 0)
-		blobList.append(blob)
-
-	pickle.dump(blobList, open('pickles/blobList' + str(imageCount) + '.p', 'wb'))
-
-pickleGlob = glob.glob('pickles/*.p')
-for imageCount, pickledBlobList in enumerate(pickleGlob):
-
-	print '\n'
-	print imageCount
-	end = timer()
-	print(end - start)
-	print '\n'
-
-	blobList = pickle.load(open(pickledBlobList, 'rb'))
-	blobList_below = pickle.load(open(pickledGlob[imageCount+1], 'rb'))
-
-	for blob in blobList:
+		where = np.where(image1 == color1)
+		listofpixels1 = zip(list(where[0]), list(where[1]))
 
 		try:
 			image2 = images[imageCount + 1]
 		except:
 			continue
 
+		centroid1 = findCentroid(listofpixels1)
 
-		shouldSkip, seedpixel = getSeedPixel(blob.centroid, image2, blob.color)
+		if centroid1 in zTracker.keys():
+			nFromPrevSlice = zTracker[centroid1][0]
+			zValue = zTracker[centroid1][1]
+		else:
+			nFromPrevSlice = None
+			zValue = 0
+			zTracker[centroid1] = [nFromPrevSlice, zValue]
+
+		shouldSkip, seedpixel = getSeedPixel(centroid1, image2, color1)
 
 		if shouldSkip:
+			del zTracker[centroid1]
+			listofpixels2 = []
+			color2 = 0
+			blobList.append(blob(imageCount, n, listofpixels1, color1, listofpixels2, color2, nFromPrevSlice, zValue, shouldSkip))
 			continue
 
-		setofpixels1 = set(blob.listofpixels)
+		setofpixels1 = set(listofpixels1)
 
 		color2 = image2[seedpixel]
 		whereColor = np.where(image2==color2)
 		listofpixels2 = zip(whereColor[0],whereColor[1])
 		setofpixels2 = set(listofpixels2)
 
-		blob_foundbelow = next((x for x in blobList_below if x.listofpixels == listofpixels2), None)
-		if blob_foundbelow == None:
-			code.interact(local=locals())
-
 
 		percent_overlap = testOverlap(setofpixels1, setofpixels2)
+		overlap_threshold = 0.75
 
+		centroid2 = findCentroid(listofpixels2)
 
 		# cv2.circle(image1, (seedpixel[1], seedpixel[0]), 1, int(color2), -1)
 		# cv2.putText(image1, str(n), (centroid1[1],centroid1[0]), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.6, int(color2), 1,cv2.LINE_AA)
@@ -331,81 +308,63 @@ for imageCount, pickledBlobList in enumerate(pickleGlob):
 		# 		continue
 
 		if percent_overlap == 0:
+			del zTracker[centroid1]
+			shouldSkip = True
+			blobList.append(blob(imageCount, n, listofpixels1, color1, listofpixels2, color2, nFromPrevSlice, zValue, shouldSkip))
 			continue
-		elif percent_overlap > 0.75:
-			blob_foundbelow.color = color
-			for pixel in blob_foundbelow.listofpixels:
-				image2[pixel] = color
+		elif percent_overlap > overlap_threshold:
+			for pixel in listofpixels2:
+				image2[pixel] = color1
+			pop = zTracker.pop(centroid1)
+			zTracker[centroid2] = [n, pop[1] + 1]
+			blobList.append(blob(imageCount, n, listofpixels1, color1, listofpixels2, color2, nFromPrevSlice, zValue, shouldSkip))
 			# pop = zTracker.pop(centroid1)
 			# zTracker[centroid2] = [pop[0] + 1, n]
 		else:
 			imageD = np.zeros(image1.shape, np.uint16)
-			for pixel in blob_foundbelow.listofpixels:
+			for pixel in listofpixels2:
 				imageD[pixel] = color2
 
-			# labels = waterShed(imageD, color2)
+
+			subBlobs = waterShed(imageD)
+			if len(subBlobs) > 1:
+				percent_overlap = 0
+
+				for b in subBlobs:
+					pt = testOverlap(setofpixels1, set(b))
+					if pt > percent_overlap:
+						percent_overlap = pt
+						listofpixels2 = b
+						setofpixels2 = set(b)
+						centroid2 = findCentroid(listofpixels2)
+				if percent_overlap == 0:
+					del zTracker[centroid1]
+					shouldSkip = True
+					blobList.append(blob(imageCount, n, listofpixels1, color1, listofpixels2, color2, nFromPrevSlice, zValue, shouldSkip))
+					continue
+				elif percent_overlap > overlap_threshold:
+					for pixel in listofpixels2:
+						image2[pixel] = color1
+					pop = zTracker.pop(centroid1)
+					zTracker[centroid2] = [n, pop[1] + 1]
+					blobList.append(blob(imageCount, n, listofpixels1, color1, listofpixels2, color2, nFromPrevSlice, zValue, shouldSkip))
+				else:
+					del zTracker[centroid1]
+					shouldSkip = True
+					blobList.append(blob(imageCount, n, listofpixels1, color1, listofpixels2, color2, nFromPrevSlice, zValue, shouldSkip))
+					continue
+			else:
+				del zTracker[centroid1]
+				shouldSkip = True
+				blobList.append(blob(imageCount, n, listofpixels1, color1, listofpixels2, color2, nFromPrevSlice, zValue, shouldSkip))
+				continue
 
 
+	for blob in blobList:
+		cv2.putText(image1, blob.n, (blob.centroid1[1], blob.centroid1[0]), cv2.FONT_HERSHEY_COMPLEX_SMALL,  0.6, int(blob.color_foundbelow), 1,cv2.LINE_AA)
+	cv2.imwrite('littleresult4/' + list_of_image_paths[imageCount][list_of_image_paths[imageCount].index('/')+1:], image1)
+	pickle.dump(blobList, open('picklesLR5/blobList' + str(imageCount) + '.p', 'wb'))
 
-			blobs = waterShed(imageD)
-			percent_overlap = 0
-
-
-
-			if len(blobs) > 1:
-				splitBlobs(blobList_below, blob_foundbelow.listofpixels, blobs)
-
-			for b in blobs:
-				pt = testOverlap(setofpixels1, set(b))
-				if pt > percent_overlap:
-					percent_overlap = pt
-					setofpixels2 = set(b)
-
-			blob_foundbelow.color = color
-			for pixel in setofpixels2:
-				image2[pixel] = color
-
-			# pop = zTracker.pop(centroid1)
-			# zTracker[centroid2] = [pop[0] + 1, n]
-
-			# imageF = np.zeros(image1.shape, np.uint16)
-			# for pixel in setofpixels1:
-			# 	imageF[pixel] = color
-			#
-			# imageB = np.zeros(image1.shape, np.uint16)
-			# for pixel in setofpixels2:
-			# 	imageB[pixel] = color
-			#
-			# cv2.imshow('F', imageF)
-			# cv2.imshow('D', imageD)
-			# cv2.imshow('B', imageB)
-			# cv2.waitKey()
-			#
-			# code.interact(local=locals())
-
-
-		# cnt = np.array([[each] for each in listofpixels1],dtype='float32')
-
-		# ctr = np.array(cnt).reshape((-1,1,2)).astype(np.int32)
-		# cv2.drawContours(image1, [ctr], 0, 255, 3)
-
-		# display_image1 = cv2.resize(image1, (0,0), fx=0.5, fy=0.5)
-		# display_img1 = cv2.resize(img1, (0,0), fx=0.8, fy=0.8)
-
-		# code.interact(local=locals())
-	drawStack.append(drawList)
-	pickle.dump(blobDict, open('picklesLR5/blobDict' + str(imageCount) + '.p', 'wb'))
-
-for i, drawList in enumerate(drawStack):
-	cv2.putText(images[i], str(drawList[]), (centroid1[1],centroid1[0]), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.6, int(color2), 1,cv2.LINE_AA)
-	cv2.imwrite('littleresult5/' + list_of_image_paths[imageCount][list_of_image_paths[imageCount].index('/')+1:], image1)
-	print 'Saved image ' + str(i + 1) + '/' + str(len(drawStack))
 
 
 code.interact(local=locals())
-
-
-#while True:
-	#cv2.imshow("image", image)
-	#key = cv2.waitKey(20) & 0xFF
-#	code.interact(local=locals())
