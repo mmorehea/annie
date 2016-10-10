@@ -42,7 +42,7 @@ args = vars(ap.parse_args())
 #list_of_images = sorted(glob.glob(args["dir"] +'*'))
 start = timer()
 
-impath = 'vcn_tracked_tiffs1.tif'
+impath = 'maher_results1.tif'
 
 imgs = tifffile.imread(impath)
 
@@ -81,7 +81,7 @@ for each in colorMap.keys()[1:]:
 	zMin = np.amin(first[2])
 	s = zMax- zMin
 	allSizes.append(s)
-	if s > 500:
+	if s < 400:
 		continue
 	print "found suitable object: " + str(each)
 	g = np.zeros((xMax+1,yMax+1,zMax+1))
