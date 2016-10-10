@@ -46,6 +46,9 @@ impath = 'maher_results1.tif'
 
 imgs = tifffile.imread(impath)
 
+zSizeMin = np.amin(imgs.shape[0])
+print zSizeMin
+code.interact(local=locals())
 print "loaded image stack"
 #imgPath1 = list_of_images[0]
 #imgs = cv2.imread(imgPath1, -1)
@@ -70,7 +73,8 @@ for each in colorMap.keys()[1:]:
 	if each % 21 == 0:
 		count += 1
 		folder = "c" + str(count)
-		os.mkdir("./meshes/" + folder)
+		if not os.path.isdir("./meshes/" + folder):
+			os.mkdir("./meshes/" + folder)
 	first = np.where(imgs == colorMap[each])
 
 	xMax = np.amax(first[0])
@@ -79,18 +83,23 @@ for each in colorMap.keys()[1:]:
 	xMin = np.amin(first[0])
 	yMin = np.amin(first[1])
 	zMin = np.amin(first[2])
-	s = zMax- zMin
+	s = xMax- xMin
 	allSizes.append(s)
 	if s < 400:
+<<<<<<< Updated upstream
+=======
+		print "skipping, short: " + str(s)
+>>>>>>> Stashed changes
 		continue
-	print "found suitable object: " + str(each)
+		
+	print "found suitable object: " + str(each) + " " + str(s)
 	g = np.zeros((xMax+1,yMax+1,zMax+1))
 	g[first] = 1
 	verts, faces = measure.marching_cubes(g, 0)
 	transVerts = []
 	for v in verts:
 		transVerts.append([v[0] + xMin, v[1] + yMin, v[2] + zMin])
-	writeOBJ('meshes/' + folder + "/wholevcn_" + folder + "_input" + str(count) + '.obj', transVerts, faces)
+	writeOBJ('meshes/' + folder + "/wholevcn_" + folder + "_input" + str(each) + '.obj', transVerts, faces)
 	print "done building obj"
 
 
