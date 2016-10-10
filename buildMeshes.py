@@ -9,6 +9,34 @@ from skimage import measure
 import matplotlib.pyplot as plt
 import tifffile
 
+
+def makeGood(ids, imgs):
+	good = []
+	lengthIDS = len(ids)
+	firstImg = imgs[0]
+	lastImg = imgs[498]
+
+	#code.interact(local=locals())
+	
+	for each in ids:
+		if each == 0:
+			continue
+		print "processing " + str(each) + " of " + str(lengthIDS)
+		first = np.where(firstImg == each)
+		
+
+		#code.interact(local=locals())
+
+		x1Max = np.amax(first[0])
+		x1Min = np.amin(first[0])
+		last = np.where(lastImg == each)
+		x2Max = np.amax(last[0])
+		x2Min = np.amin(last[0])
+		if (x1Max-x1Min) < 450 & (x2Max -x2Min) < 450:
+			good.append(each)
+		return good
+
+
 def writeOBJ(filepath, verts, faces):
 	with open(filepath, 'w') as f:
 	    f.write("# OBJ file\n")
@@ -20,61 +48,25 @@ def writeOBJ(filepath, verts, faces):
 		    f.write(" %d" % (i + 1))
 		f.write("\n")
 
-def buildColorMap(img):
-	colorMap = {0: 0}
-	counter = 0
-	uniqueValues = np.unique(img)
-	for each in uniqueValues:
-			if each in colorMap.values():
-				continue
-			else:
-				counter += 1
-				colorMap[counter] = each
-	#print colorMap
-	return colorMap
-
-
 ap = argparse.ArgumentParser()
-ap.add_argument("-i", "--img", required=True, help="Path to the multipage tiff")
+ap.add_argument("-i", "--img", 	required=True, help="Path to the multipage tiff")
 args = vars(ap.parse_args())
 
-# load the image, clone it, and setup the mouse callback function
-#list_of_images = sorted(glob.glob(args["dir"] +'*'))
-start = timer()
-
-impath = 'maher_results1.tif'
+impath = args['img']
 
 imgs = tifffile.imread(impath)
 
-zSizeMin = np.amin(imgs.shape[0])
-print zSizeMin
+ids = np.unique(imgs)
+
+#code.interact(local=locals())
+
+theGood = makeGood(ids, imgs)
+
 code.interact(local=locals())
-print "loaded image stack"
-#imgPath1 = list_of_images[0]
-#imgs = cv2.imread(imgPath1, -1)
 
-#for imageCount in xrange(len(list_of_images)):
-#    if imageCount == 0:
-#        continue
-#    print 'importing image #' + str(imageCount)
-#    imgPath1 = list_of_images[imageCount]
-#    img1 = cv2.imread(imgPath1, -1)
-#    imgs = np.dstack((imgs, img1))
-print "building colormap"
-colorMap = buildColorMap(imgs)
-allSizes = []
 
-objs_processed = glob.glob("./meshes/*")
-print "beginning search for objs"
-count = 0
-folder = "c1"
-os.mkdir("./meshes/" + folder)
-for each in colorMap.keys()[1:]:
-	if each % 21 == 0:
-		count += 1
-		folder = "c" + str(count)
-		if not os.path.isdir("./meshes/" + folder):
-			os.mkdir("./meshes/" + folder)
+for each in theGood:
+	
 	first = np.where(imgs == colorMap[each])
 
 	xMax = np.amax(first[0])
@@ -83,16 +75,7 @@ for each in colorMap.keys()[1:]:
 	xMin = np.amin(first[0])
 	yMin = np.amin(first[1])
 	zMin = np.amin(first[2])
-	s = xMax- xMin
-	allSizes.append(s)
-	if s < 400:
-<<<<<<< Updated upstream
-=======
-		print "skipping, short: " + str(s)
->>>>>>> Stashed changes
-		continue
-		
-	print "found suitable object: " + str(each) + " " + str(s)
+	
 	g = np.zeros((xMax+1,yMax+1,zMax+1))
 	g[first] = 1
 	verts, faces = measure.marching_cubes(g, 0)
@@ -103,4 +86,4 @@ for each in colorMap.keys()[1:]:
 	print "done building obj"
 
 
-code.interact(local=locals())
+#code.interact(local=locals())
