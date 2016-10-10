@@ -103,7 +103,7 @@ def getStack():
 def buildQtImg(img):
     height, width = img.shape
     bytesPerLine = width
-    qImg = QtGui.QImage(img.data, width, height, bytesPerLine)
+    qImg = QtGui.QImage(img.data, width, height, bytesPerLine, QtGui.QImage.Format_ARGB32_Premultiplied)
     return qImg
 
 def makeDisplayFile(path):
@@ -141,6 +141,16 @@ def makeDisplayFile(path):
 
     return newPath
 
+
+def getColors():
+    with open('colors.txt') as f:
+          colors = f.readlines()
+    colors = [[int(x) for x in c[:-1].split(',')] for c in colors]
+    #code.interact(local=locals())
+    Qcolors = [QtGui.qRgb(c[0], c[1], c[2]) for c in colors]
+    return Qcolors
+
+
 def mapConvert(slide):
     code.interact(local=locals())
     slide = tifffile.imread(slide)
@@ -172,7 +182,7 @@ def mapConvert(slide):
 
     return newSlide
 
-def makeAndSetColorTable(images):
+def setColorTable(images):
     with open('colors.txt') as f:
         colors = f.readlines()
     #code.interact(local=locals())
@@ -184,7 +194,7 @@ def makeAndSetColorTable(images):
     #code.interact(local=locals())
     #for color in colors:
     #    colorVector.append(QtGui.QColor.qRgb(color[0],color[1],color[2]))
-    code.interact(local=locals())
+    #code.interact(local=locals())
     for image in images:
         image.setColorTable(colorVector)
         #code.interact(local=locals())
@@ -207,7 +217,8 @@ class Widget(QtGui.QWidget):
 
         # Changed this to be a list of tuples
         # self._images = [(i, makeDisplayFile(i)) for i in getImages()]
-        self._images = makeAndSetColorTable(getImages())
+        self._images = getImages()
+        self.colors = getColors()
 
         self.slider = QtGui.QSlider(self)
         self.slider.setOrientation(QtCore.Qt.Horizontal)
@@ -228,8 +239,9 @@ class Widget(QtGui.QWidget):
         print "Slider moved to:", val
         try:
             self.sliderIndex = val
-            self.image.setPixmap(QtGui.QPixmap(self._images[val]))
-
+            boop = self._images[val].convertToFormat(QtGui.QImage.Format_RGB32, self.colors)
+            code.interact(local=locals())
+            self.image.setPixmap(QtGui.QPixmap.fromImage(boop))
         except IndexError:
             print "Error: No image at index", val
 
