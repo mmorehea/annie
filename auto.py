@@ -13,6 +13,7 @@ from skimage.feature import peak_local_max
 from skimage.morphology import watershed
 from scipy import ndimage
 import cPickle as pickle
+import random
 
 np.set_printoptions(threshold=np.inf)
 
@@ -31,8 +32,8 @@ class Blob():
 		self.centroid = findCentroid(listofpixels)
 		self.box, self.dimensions = findBBDimensions(listofpixels)
 		self.centroid_foundbelow = findCentroid(listofpixels_foundbelow)
-		self.box, self.dimensions_foundbelow = findBBDimensions(listofpixels_foundbelow)
-		self.percent_overlap_foundbelow = testOverlap(set(self.listofpixels), set(self.listofpixels_foundbelow))
+		if len(self.listofpixels_foundbelow) > 0: self.box, self.dimensions_foundbelow = findBBDimensions(listofpixels_foundbelow)
+		if len(self.listofpixels_foundbelow) > 0: self.percent_overlap_foundbelow = testOverlap(set(self.listofpixels), set(self.listofpixels_foundbelow))
 
 
 
@@ -89,6 +90,8 @@ def percent_difference_in_BB_area(dim1, dim2):
 # */
 def waterShed(img16):
 	img8 = (img16/256).astype('uint8')
+	w = np.where(img8 != 0)
+	initblob = zip(w[0], w[1])
 
 	contours = cv2.findContours(img8.copy(),cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[1]
 	blobs = []
@@ -102,6 +105,11 @@ def waterShed(img16):
 		# convert back to row, column and store as list of points
 		# cnt = [(x[0][1], x[0][0]) for x in cnt]
 		# newconts.append(cnt)
+
+	if len(blobs) == 1 and blobs[0] != initblob: # causes significant speed hit
+		newblob = list(set(initblob) - set(blobs[0]))
+		blobs.append(newblob)
+
 
 	return blobs
 
@@ -279,6 +287,15 @@ def recSearch(pixel, img, color):
 	found = zip(found[0],found[1])
 	return found
 
+def changeColor(img, listofpixels):
+	vals = [c for c in np.unique(img) if c!=0]
+	newcolor = max(vals) + 50
+	if newcolor > 2**16:
+		newcolor = random.choice(list(set(range(max(vals))[50:]) - set(vals)))
+	for pixel in listofpixels:
+		img[pixel] = newcolor
+	return img
+
 
 
 # /*
@@ -292,12 +309,10 @@ def recSearch(pixel, img, color):
 ################################################################################
 # SETTINGS
 label_and_collect_info = False # Takes a lot more time but labels all blobs and collects info on each for use with dauto.py, good for testing.
-write_images_to = 'littleresult4/'
-write_pickles_to = 'picklesLR5/blobList' # Only matters if label_and_collect_info is true
-indices_of_slices_to_be_removed = [490, 491, 501, 502, 504, 505, 506]
+write_images_to = 'result2/'
+write_pickles_to = 'picklesLR/blobList' # Only matters if label_and_collect_info is true
+indices_of_slices_to_be_removed = []
 ################################################################################
-
-
 
 dirr = sys.argv[1]
 # stopAt = 200
@@ -313,31 +328,21 @@ for i, path in enumerate(list_of_image_paths):
 	images.append(im)
 	print 'Loaded image ' + str(i + 1) + '/' + str(len(list_of_image_paths))
 
-images = [i for j, i, in enumerate(images) if j not in indices_of_slices_to_be_removed]
-
 start = timer()
 
 zTracker = {}
-# for each blob, stores 1) the n of the blob that connected to it in the previous slice and  2) a zvalue indicating how far up it is connected to other blobs
 chainLengths = []
+# for each blob, stores 1) the n of the blob that connected to it in the previous slice and  2) a zvalue indicating how far up it is connected to other blobs
 for imageCount, image1 in enumerate(images):
-
 	print '\n'
 	print imageCount
 	end = timer()
 	print(end - start)
 	print '\n'
 
-	colorMap = buildColorMap(image1)
-
-	# Omitting the first one because it's just 0 mapped to 0
-	colorVals = colorMap.values()[1:]
-
-	numberOfColors = len(colorVals)
+	colorVals = [c for c in np.unique(image1) if c!=0]
 
 	blobList = []
-
-
 	for n, color1 in enumerate(colorVals):
 
 
@@ -372,6 +377,7 @@ for imageCount, image1 in enumerate(images):
 						nFromPrevSlice = zTracker[centroid1][0]
 						zValue = zTracker[centroid1][1]
 						found = True
+
 			if found == False:
 				nFromPrevSlice = None
 				zValue = 0
@@ -381,7 +387,7 @@ for imageCount, image1 in enumerate(images):
 		try:
 			image2 = images[imageCount + 1]
 		except:
-			chainLengths.append(zValue)
+			chainLengths.append((zValue, color1))
 			del zTracker[centroid1]
 			listofpixels2 = []
 			color2 = 0
@@ -392,8 +398,10 @@ for imageCount, image1 in enumerate(images):
 
 		shouldSkip, seedpixel = getSeedPixel(centroid1, image2, color1)
 
+		# if percent_edgepixels(listofpixels1) > 0.5:
+
 		if shouldSkip:
-			chainLengths.append(zValue)
+			chainLengths.append((zValue, color1))
 			del zTracker[centroid1]
 			listofpixels2 = []
 			color2 = 0
@@ -467,13 +475,12 @@ for imageCount, image1 in enumerate(images):
 		# 	image3 =  images[imageCount - 1]
 		# 	# shouldSkip, seedpixel = getSeedPixel(centroid1, image3, color1)
 		# 	color3 = image3[centroid1]
-		# 	if color3 != 0:
-		# 		w =  np.where(image3==color3)
-		# 		listofpixels3 = zip(w[0], w[1])
-		# 		if testOverlap(setofpixels1, set(listofpixels3)) > 0:
-		# 			color1 = color3
-		# 			for pixel in listofpixels1:
-		# 				image1[pixel] = color1
+		# 	w =  np.where(image3==color3)
+		# 	listofpixels3 = zip(w[0], w[1])
+		# 	if testOverlap(setofpixels1, set(listofpixels3)) > 0:
+		# 		color1 = color3
+		# 		for pixel in listofpixels1:
+		# 			image1[pixel] = color1
 
 
 
@@ -484,7 +491,7 @@ for imageCount, image1 in enumerate(images):
 				if label_and_collect_info: blobList.append(Blob(imageCount, n, listofpixels1, color1, listofpixels2, color2, nFromPrevSlice, zValue, shouldSkip))
 				continue
 		if percent_overlap == 0:
-			chainLengths.append(zValue)
+			chainLengths.append((zValue, color1))
 			del zTracker[centroid1]
 			shouldSkip = True
 			if label_and_collect_info: blobList.append(Blob(imageCount, n, listofpixels1, color1, listofpixels2, color2, nFromPrevSlice, zValue, shouldSkip))
@@ -492,6 +499,13 @@ for imageCount, image1 in enumerate(images):
 		elif percent_difference_in_BB_area(dimensions1, dimensions2) < 0.2: # or branched == True: #percent_overlap > 0.75 123 slices/min
 			for pixel in listofpixels2:
 				image2[pixel] = color1
+
+			ww = np.where(image2==color1)
+			q = zip(ww[0], ww[1])
+			if q != listofpixels2:
+				diff = list(set(q) - set(listofpixels2))
+				image2 = changeColor(image2, diff)
+
 			pop = zTracker.pop(centroid1)
 			zTracker[centroid2] = [n, pop[1] + 1]
 			if label_and_collect_info: blobList.append(Blob(imageCount, n, listofpixels1, color1, listofpixels2, color2, nFromPrevSlice, zValue, shouldSkip))
@@ -514,7 +528,7 @@ for imageCount, image1 in enumerate(images):
 						centroid2 = findCentroid(listofpixels2)
 						box, dimensions2 = findBBDimensions(listofpixels2)
 				if percent_overlap == 0:
-					chainLengths.append(zValue)
+					chainLengths.append((zValue, color1))
 					del zTracker[centroid1]
 					shouldSkip = True
 					if label_and_collect_info: blobList.append(Blob(imageCount, n, listofpixels1, color1, listofpixels2, color2, nFromPrevSlice, zValue, shouldSkip))
@@ -522,12 +536,26 @@ for imageCount, image1 in enumerate(images):
 				else:
 					for pixel in listofpixels2:
 						image2[pixel] = color1
+
+					ww = np.where(image2==color1)
+					q = zip(ww[0], ww[1])
+					if q != listofpixels2:
+						diff = list(set(q) - set(listofpixels2))
+						image2 = changeColor(image2, diff)
+
 					pop = zTracker.pop(centroid1)
 					zTracker[centroid2] = [n, pop[1] + 1]
 					if label_and_collect_info: blobList.append(Blob(imageCount, n, listofpixels1, color1, listofpixels2, color2, nFromPrevSlice, zValue, shouldSkip))
 			else:
 				for pixel in listofpixels2:
 					image2[pixel] = color1
+
+				ww = np.where(image2==color1)
+				q = zip(ww[0], ww[1])
+				if q != listofpixels2:
+					diff = list(set(q) - set(listofpixels2))
+					image2 = changeColor(image2, diff)
+
 				pop = zTracker.pop(centroid1)
 				zTracker[centroid2] = [n, pop[1] + 1]
 				if label_and_collect_info: blobList.append(Blob(imageCount, n, listofpixels1, color1, listofpixels2, color2, nFromPrevSlice, zValue, shouldSkip))
@@ -540,6 +568,15 @@ for imageCount, image1 in enumerate(images):
 	if label_and_collect_info: pickle.dump(blobList, open(write_pickles_to + str(imageCount) + '.p', 'wb'))
 
 print 'Number of chains: ' + str(len(chainLengths))
-print 'Average chain length: ' + str(sum(chainLengths)/len(chainLengths))
+print 'Average chain length: ' + str(sum([x[0] for x in chainLengths])/len(chainLengths))
+
+if os.path.exists('summary.txt'):
+	os.remove('summary.txt')
+
+chainLengths = sorted(chainLengths)[::-1]
+
+with open('summary.txt','w') as f:
+	for i,each in enumerate(chainLengths):
+		f.write(str(chainLengths[i][1]) + ' ' + str(chainLengths[i][0]) + '\n')
 
 code.interact(local=locals())

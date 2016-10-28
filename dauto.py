@@ -28,9 +28,9 @@ class Blob():
 
 print 'REMEMBER TO SET THE IMAGE SHAPE CORRECTLY'
 
-shape = (297, 406)
+shape = (286, 424)
 
-pickleFolder = 'picklesLR5/'
+pickleFolder = 'picklesLR/'
 
 zSelect = int(sys.argv[1])
 

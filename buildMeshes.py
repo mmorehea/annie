@@ -23,18 +23,21 @@ def makeGood(ids, imgs):
 			continue
 		print "processing " + str(each) + " of " + str(lengthIDS)
 		first = np.where(firstImg == each)
-		
-
+		last = np.where(lastImg == each)
+		if len(first[0]) == 0:
+			continue
+		if len(last[0]) == 0:
+			continue
 		#code.interact(local=locals())
 
 		x1Max = np.amax(first[0])
 		x1Min = np.amin(first[0])
-		last = np.where(lastImg == each)
+		
 		x2Max = np.amax(last[0])
 		x2Min = np.amin(last[0])
 		if (x1Max-x1Min) < 450 & (x2Max -x2Min) < 450:
 			good.append(each)
-		return good
+	return good
 
 
 def writeOBJ(filepath, verts, faces):
@@ -62,12 +65,12 @@ ids = np.unique(imgs)
 
 theGood = makeGood(ids, imgs)
 
-code.interact(local=locals())
+#code.interact(local=locals())
+print len(theGood)
 
-
-for each in theGood:
+for ii,each in enumerate(theGood):
 	
-	first = np.where(imgs == colorMap[each])
+	first = np.where(imgs == each)
 
 	xMax = np.amax(first[0])
 	yMax = np.amax(first[1])
@@ -82,7 +85,7 @@ for each in theGood:
 	transVerts = []
 	for v in verts:
 		transVerts.append([v[0] + xMin, v[1] + yMin, v[2] + zMin])
-	writeOBJ('meshes/' + folder + "/wholevcn_" + folder + "_input" + str(each) + '.obj', transVerts, faces)
+	writeOBJ('meshes/' + "/wholevcn_" + "_input" + str(ii) + '.obj', transVerts, faces)
 	print "done building obj"
 
 
