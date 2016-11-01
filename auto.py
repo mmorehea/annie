@@ -309,7 +309,7 @@ def changeColor(img, listofpixels):
 ################################################################################
 # SETTINGS
 label_and_collect_info = False # Takes a lot more time but labels all blobs and collects info on each for use with dauto.py, good for testing.
-write_images_to = 'result2/'
+write_images_to = 'longresult/'
 write_pickles_to = 'picklesLR/blobList' # Only matters if label_and_collect_info is true
 indices_of_slices_to_be_removed = []
 ################################################################################
