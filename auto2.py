@@ -35,6 +35,49 @@ def findBBDimensions(listofpixels):
 
 		return [minxs, maxxs, minys, maxys], [dx, dy]
 
+def changeColor(colorSet):
+
+	newcolor = max(colorSet) + 20
+	if newcolor > 2**16:
+		newcolor = random.choice(list(set(range(max(vals))[50:]) - set(vals)))
+
+	return newcolor
+
+def testOverlap(setofpixels1, setofpixels2):
+
+	set_intersection = setofpixels1 & setofpixels2
+
+	set_union = setofpixels1 | setofpixels2
+
+	percent_overlap = float(len(set_intersection)) / len(set_union)
+
+	return percent_overlap
+
+def orderByPercentOverlap(blobs, reference):
+	overlapList = []
+	for blob in blobs:
+		overlapList.append((testOverlap(set(reference),set(blob)), blob))
+
+
+	overlapList = sorted(overlapList,key=lambda o: o[0])[::-1]
+	orderedBlobs = [l[1] for l in overlapList]
+	overlapVals = [l[0] for l in overlapList]
+
+	return orderedBlobs, overlapVals
+
+def removeFromStack(image,blob):
+	for pixel in blob:
+		image[pixel] = 0
+
+	return image
+
+def display(blob, imageD):
+	img = imageD
+	for pixel in blob:
+		img[pixel] = 99999
+
+	cv2.imshow('display',img)
+	cv2.waitKey()
 
 # /*
 # ███    ███  █████  ██ ███    ██
@@ -46,9 +89,12 @@ def findBBDimensions(listofpixels):
 
 ################################################################################
 # SETTINGS
-label_and_collect_info = False # Takes a lot more time but labels all blobs and collects info on each for use with dauto.py, good for testing.
+minimum_process_length = 100
 write_images_to = 'littleresult/'
-write_pickles_to = 'pickles3/blobList' # Only matters if label_and_collect_info is true
+write_pickles_to = 'pickles/object'
+trace_objects = True
+build_resultStack = True
+load_stack_from_pickle_file = False 
 indices_of_slices_to_be_removed = []
 ################################################################################
 
@@ -58,55 +104,180 @@ list_of_image_paths = sorted(glob.glob(dirr +'*'))
 
 list_of_image_paths = [i for j, i, in enumerate(list_of_image_paths) if j not in indices_of_slices_to_be_removed]
 
-images = []
-for i, path in enumerate(list_of_image_paths):
-	im = cv2.imread(path, -1)
-	images.append(im)
-	print 'Loaded image ' + str(i + 1) + '/' + str(len(list_of_image_paths))
+shape = cv2.imread(list_of_image_paths[0],-1).shape
 
 start = timer()
 
+if trace_objects:
 
-for image in images:
+	chainLengths = []
 
-	colorVals = [c for c in np.unique(image) if c!=0]
+	images = []
+	for i, path in enumerate(list_of_image_paths):
+		im = cv2.imread(path, -1)
+		images.append(im)
+		print 'Loaded image ' + str(i + 1) + '/' + str(len(list_of_image_paths))
 
-	blobs = []
-	for color in colorVals:
-		wblob = np.where(image==color)
-		blob = zip(wblob[0], wblob[1])
-		blobs.append(blob)
+	objectCount = -1
+	for z, image in enumerate(images):
+		imageD = np.zeros(shape, np.uint16)
 
-	blobs = sorted(blobs, key=len)
+		colorVals = [c for c in np.unique(image) if c!=0]
 
-	for startBlob in blobs:
+		blobs = []
+		for color in colorVals:
+			wblob = np.where(image==color)
+			blob = zip(wblob[0], wblob[1])
+			blobs.append(blob)
 
-		box, dimensions = findBBDimensions(startBlob)
-
-		process = [[startBlob]]
-
-		zspace = 1
-		while terminate == False:
-
-			image2 = images[imageCount + zspace]
-
-			view = image2[box[0]:box[1], box[2]:box[3]]
-
-			colorstocheck = [c for c in np.unique(view) if c != 0]
-
-			blobstocheck = []
-			for c in colorstocheck:
-				wb = np.where(image == c)
-				b = zip(wb[0],wb[1])
-				blobstocheck.append(b)
-
-			blobsfound = []
-			for b in blobstocheck:
-				if len(set(startBlob) & set(b)) > 10:
-					for pixel in b:
-						image2[pixel] = 0
+		blobs = sorted(blobs, key=len)
 
 
-					blobsfound.append(b)
+		for i, startBlob in enumerate(blobs):
+			# print str(i+1) + '/' + str(len(blobs))
 
-			process.append(blobsfound)
+			box, dimensions = findBBDimensions(startBlob)
+
+			color = image[startBlob[0]]
+
+			startZ = z
+
+			process = [startBlob]
+
+			image = removeFromStack(image, startBlob)
+
+			zspace = 0
+			terminate = False
+			currentBlob = startBlob
+
+			while terminate == False:
+
+
+				zspace += 1
+
+				try:
+					image2 = images[z + zspace]
+				except:
+					terminate = True
+					continue
+
+				view = image2[box[0]:box[1], box[2]:box[3]]
+
+				colorstocheck = [c for c in np.unique(view) if c != 0]
+
+				blobstocheck = []
+				for c in colorstocheck:
+					wb = np.where(image2 == c)
+					b = zip(wb[0],wb[1])
+					blobstocheck.append(b)
+
+				blobsfound = []
+
+				if len(blobstocheck) == 0:
+					terminate = True
+					# print '\t' + str(zspace)
+				elif len(blobstocheck) == 1:
+					if testOverlap(set(currentBlob), set(blobstocheck[0])) > 0.33:
+						blobsfound.append(blobstocheck[0])
+					else:
+						terminate = True
+						# print '\t' + str(zspace)
+				else:
+					blobstocheck, overlapVals = orderByPercentOverlap(blobstocheck, currentBlob)
+					if testOverlap(set(currentBlob), set(blobstocheck[0])) > 0.33:
+						blobsfound.append(blobstocheck[0])
+						for b in blobstocheck[1:]:
+							if testOverlap(set(currentBlob), set(blobstocheck[0] + b)) > overlapVals[0]:
+								blobsfound.append(b)
+					else:
+						terminate = True
+						# print '\t' + str(zspace)
+
+
+				if terminate == False:
+
+					currentBlob = []
+					for b in blobsfound:
+						currentBlob += b
+
+					image2 = removeFromStack(image2, currentBlob)
+
+					process.append(currentBlob)
+
+
+					box,dimensions = findBBDimensions(currentBlob)
+
+			if len(process) > minimum_process_length:
+				objectCount += 1
+
+				print '\n'
+				print objectCount
+				end = timer()
+				print(end - start)
+				print '\n'
+
+				chainLengths.append(len(process))
+				pickle.dump((startZ,process,color), open(write_pickles_to + str(objectCount) + '.p', 'wb'))
+
+	print 'Number of chains: ' + str(len(chainLengths))
+	print 'Average chain length: ' + str(sum([x[0] for x in chainLengths])/len(chainLengths))
+
+	if os.path.exists('summary.txt'):
+		os.remove('summary.txt')
+
+	chainLengths = sorted(chainLengths)[::-1]
+
+	with open('summary.txt','w') as f:
+		for i,each in enumerate(chainLengths):
+			f.write(str(chainLengths[i][1]) + ' ' + str(chainLengths[i][0]) + '\n')
+
+
+if build_resultStack:
+
+	picklePaths = sorted(glob.glob('pickles/*.p'))
+
+	colorSet = []
+
+	if load_stack_from_pickle_file:
+		resultStack = []
+		for i in xrange(len(list_of_image_paths)):
+			blankImg = np.zeros(shape, np.uint16)
+			resultStack.append(blankImg)
+		startO = 0
+	else:
+		resultStack, startO = pickle.load(open('resultStackSave.p', 'rb'))
+
+	for o, path in enumerate(picklePaths):
+		if o < startO:
+			continue
+
+
+		startZ, process, color = pickle.load(open(path, 'rb'))
+
+		if color in colorSet:
+			color = changeColor(colorSet)
+		else:
+			colorSet.append(color)
+
+
+		for z, img in enumerate(resultStack):
+
+			if z < startZ:
+				continue
+
+			if z >= startZ + len(process):
+				continue
+
+			for pixel in process[z - startZ]:
+				img[pixel] = color
+
+		pickle.dump((resultStack, o), open('resultStackSave.p,','wb'))
+
+		print '\n'
+		print 'Built object ' + str(o) + '/' + str(len(picklePaths))
+		end = timer()
+		print(end - start)
+		print '\n'
+
+	for z, image in enumerate(resultStack):
+		cv2.imwrite(write_images_to + list_of_image_paths[z][list_of_image_paths[z].index('/')+1:], image)
