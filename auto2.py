@@ -71,13 +71,21 @@ def removeFromStack(image,blob):
 
 	return image
 
-def display(blob, imageD):
-	img = imageD
+def display(blob):
+
+	img = np.zeros(shape, np.uint16)
 	for pixel in blob:
 		img[pixel] = 99999
 
-	cv2.imshow('display',img)
+	cv2.imshow(str(random.random()),img)
 	cv2.waitKey()
+
+
+# img = np.zeros(shape, np.uint16)
+# for pixel in blob:
+# 	img[pixel] = 99999
+# cv2.imshow('display',img)
+# cv2.waitKey()
 
 # /*
 # ███    ███  █████  ██ ███    ██
@@ -94,7 +102,7 @@ write_images_to = 'littleresult/'
 write_pickles_to = 'pickles/object'
 trace_objects = True
 build_resultStack = True
-load_stack_from_pickle_file = False 
+load_stack_from_pickle_file = False
 indices_of_slices_to_be_removed = []
 ################################################################################
 
@@ -120,7 +128,6 @@ if trace_objects:
 
 	objectCount = -1
 	for z, image in enumerate(images):
-		imageD = np.zeros(shape, np.uint16)
 
 		colorVals = [c for c in np.unique(image) if c!=0]
 
@@ -152,13 +159,13 @@ if trace_objects:
 
 			while terminate == False:
 
-
 				zspace += 1
 
 				try:
 					image2 = images[z + zspace]
 				except:
 					terminate = True
+					s = '0'
 					continue
 
 				view = image2[box[0]:box[1], box[2]:box[3]]
@@ -175,12 +182,14 @@ if trace_objects:
 
 				if len(blobstocheck) == 0:
 					terminate = True
+					s = '1'
 					# print '\t' + str(zspace)
 				elif len(blobstocheck) == 1:
 					if testOverlap(set(currentBlob), set(blobstocheck[0])) > 0.33:
 						blobsfound.append(blobstocheck[0])
 					else:
 						terminate = True
+						s = '2'
 						# print '\t' + str(zspace)
 				else:
 					blobstocheck, overlapVals = orderByPercentOverlap(blobstocheck, currentBlob)
@@ -191,8 +200,8 @@ if trace_objects:
 								blobsfound.append(b)
 					else:
 						terminate = True
+						s = '3'
 						# print '\t' + str(zspace)
-
 
 				if terminate == False:
 
@@ -207,6 +216,24 @@ if trace_objects:
 
 					box,dimensions = findBBDimensions(currentBlob)
 
+					if i == 25:
+						img = np.zeros(shape, np.uint16)
+						for pixel in blob:
+							img[pixel] = 99999
+
+						cv2.imshow(str(random.random()),img)
+						cv2.waitKey()
+						code.interact(local=locals())
+			if i == 25:
+				print 'terminated'
+				print s
+				img = np.zeros(shape, np.uint16)
+				for pixel in blob:
+					img[pixel] = 99999
+
+				cv2.imshow(str(random.random()),img)
+				cv2.waitKey()
+				code.interact(local=locals())
 			if len(process) > minimum_process_length:
 				objectCount += 1
 
