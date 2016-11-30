@@ -97,12 +97,12 @@ def display(blob):
 
 ################################################################################
 # SETTINGS
-minimum_process_length = 100
-write_images_to = 'littleresult/'
-write_pickles_to = 'pickles/object'
+minimum_process_length = 0
+write_images_to = 'single/'
+write_pickles_to = 'singlepickle/object'
 trace_objects = True
 build_resultStack = True
-load_stack_from_pickle_file = False
+load_stack_from_pickle_file = True
 indices_of_slices_to_be_removed = []
 ################################################################################
 
@@ -128,6 +128,10 @@ if trace_objects:
 
 	objectCount = -1
 	for z, image in enumerate(images):
+		###Testing###
+		if z != 0:
+			continue
+		#############
 
 		colorVals = [c for c in np.unique(image) if c!=0]
 
@@ -139,6 +143,10 @@ if trace_objects:
 
 		blobs = sorted(blobs, key=len)
 
+		###Testing###
+		testblob = blobs[25]
+		blobs = [testblob]
+		#############
 
 		for i, startBlob in enumerate(blobs):
 			# print str(i+1) + '/' + str(len(blobs))
@@ -180,25 +188,36 @@ if trace_objects:
 
 				blobsfound = []
 
+				###Testing###
+				# if zspace == 14:
+				# 	code.interact(local=locals())
+				#############
+
 				if len(blobstocheck) == 0:
 					terminate = True
 					s = '1'
 					# print '\t' + str(zspace)
 				elif len(blobstocheck) == 1:
-					if testOverlap(set(currentBlob), set(blobstocheck[0])) > 0.33:
+					olap = testOverlap(set(currentBlob), set(blobstocheck[0]))
+					if olap > 0.33:
 						blobsfound.append(blobstocheck[0])
+					elif olap < 0.05 and len(blobstocheck[0]) > len(currentBlob):
+						continue
 					else:
 						terminate = True
 						s = '2'
 						# print '\t' + str(zspace)
 				else:
 					blobstocheck, overlapVals = orderByPercentOverlap(blobstocheck, currentBlob)
-					if testOverlap(set(currentBlob), set(blobstocheck[0])) > 0.33:
+					olap = testOverlap(set(currentBlob), set(blobstocheck[0]))
+
+					if olap > 0.33:
 						blobsfound.append(blobstocheck[0])
 						for b in blobstocheck[1:]:
 							if testOverlap(set(currentBlob), set(blobstocheck[0] + b)) > overlapVals[0]:
 								blobsfound.append(b)
 					else:
+						code.interact(local=locals())
 						terminate = True
 						s = '3'
 						# print '\t' + str(zspace)
@@ -216,24 +235,6 @@ if trace_objects:
 
 					box,dimensions = findBBDimensions(currentBlob)
 
-					if i == 25:
-						img = np.zeros(shape, np.uint16)
-						for pixel in blob:
-							img[pixel] = 99999
-
-						cv2.imshow(str(random.random()),img)
-						cv2.waitKey()
-						code.interact(local=locals())
-			if i == 25:
-				print 'terminated'
-				print s
-				img = np.zeros(shape, np.uint16)
-				for pixel in blob:
-					img[pixel] = 99999
-
-				cv2.imshow(str(random.random()),img)
-				cv2.waitKey()
-				code.interact(local=locals())
 			if len(process) > minimum_process_length:
 				objectCount += 1
 
@@ -243,11 +244,12 @@ if trace_objects:
 				print(end - start)
 				print '\n'
 
-				chainLengths.append(len(process))
+				chainLengths.append((len(process), color))
 				pickle.dump((startZ,process,color), open(write_pickles_to + str(objectCount) + '.p', 'wb'))
 
 	print 'Number of chains: ' + str(len(chainLengths))
 	print 'Average chain length: ' + str(sum([x[0] for x in chainLengths])/len(chainLengths))
+	print s
 
 	if os.path.exists('summary.txt'):
 		os.remove('summary.txt')
@@ -261,7 +263,7 @@ if trace_objects:
 
 if build_resultStack:
 
-	picklePaths = sorted(glob.glob('pickles/*.p'))
+	picklePaths = sorted(glob.glob(write_pickles_to + '*.p'))
 
 	colorSet = []
 
@@ -301,7 +303,7 @@ if build_resultStack:
 		pickle.dump((resultStack, o), open('resultStackSave.p,','wb'))
 
 		print '\n'
-		print 'Built object ' + str(o) + '/' + str(len(picklePaths))
+		print 'Built object ' + str(o+1) + '/' + str(len(picklePaths))
 		end = timer()
 		print(end - start)
 		print '\n'
