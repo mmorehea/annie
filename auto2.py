@@ -14,6 +14,7 @@ from skimage.morphology import watershed
 from scipy import ndimage
 import cPickle as pickle
 import random
+import collections
 
 
 def findBBDimensions(listofpixels):
@@ -144,7 +145,7 @@ if trace_objects:
 		blobs = sorted(blobs, key=len)
 
 		###Testing###
-		testblob = blobs[25]
+		testblob = blobs[94]
 		blobs = [testblob]
 		#############
 
@@ -154,6 +155,7 @@ if trace_objects:
 			box, dimensions = findBBDimensions(startBlob)
 
 			color = image[startBlob[0]]
+			color1 = color
 
 			startZ = z
 
@@ -168,6 +170,7 @@ if trace_objects:
 			while terminate == False:
 
 				zspace += 1
+				blobsfound = []
 
 				try:
 					image2 = images[z + zspace]
@@ -176,51 +179,70 @@ if trace_objects:
 					s = '0'
 					continue
 
-				view = image2[box[0]:box[1], box[2]:box[3]]
+				window = image2[box[0]:box[1], box[2]:box[3]]
 
-				colorstocheck = [c for c in np.unique(view) if c != 0]
+				organicWindow = image2[zip(*currentBlob)]
+				frequency = collections.Counter(organicWindow).most_common()
 
-				blobstocheck = []
-				for c in colorstocheck:
-					wb = np.where(image2 == c)
-					b = zip(wb[0],wb[1])
-					blobstocheck.append(b)
-
-				blobsfound = []
-
-				###Testing###
-				# if zspace == 14:
-				# 	code.interact(local=locals())
-				#############
-
-				if len(blobstocheck) == 0:
-					terminate = True
-					s = '1'
-					# print '\t' + str(zspace)
-				elif len(blobstocheck) == 1:
-					olap = testOverlap(set(currentBlob), set(blobstocheck[0]))
-					if olap > 0.33:
-						blobsfound.append(blobstocheck[0])
-					elif olap < 0.05 and len(blobstocheck[0]) > len(currentBlob):
+				if frequency[0][1] / float(len(organicWindow)) > 0.8:
+					if frequency[0][0] == 0:
+						terminate = True
 						continue
 					else:
-						terminate = True
-						s = '2'
-						# print '\t' + str(zspace)
+						h = np.where(image2 == frequency[0][0])
+						blobsfound.append(zip(h[0],h[1]))
 				else:
-					blobstocheck, overlapVals = orderByPercentOverlap(blobstocheck, currentBlob)
-					olap = testOverlap(set(currentBlob), set(blobstocheck[0]))
+					# code.interact(local=locals())
+					h = np.where(image2 == frequency[0][0])
+					blobsfound.append(zip(h[0],h[1]))
 
-					if olap > 0.33:
-						blobsfound.append(blobstocheck[0])
-						for b in blobstocheck[1:]:
-							if testOverlap(set(currentBlob), set(blobstocheck[0] + b)) > overlapVals[0]:
-								blobsfound.append(b)
-					else:
-						code.interact(local=locals())
-						terminate = True
-						s = '3'
-						# print '\t' + str(zspace)
+				for blob in blobsfound:
+					if len(blob) >len(currentBlob) and testOverlap(set(currentBlob), set(blob)) < 0.05:
+						continue
+
+				# colorstocheck = [c for c in np.unique(window) if c != 0]
+				#
+				# blobstocheck = []
+				# for c in colorstocheck:
+				# 	wb = np.where(image2 == c)
+				# 	b = zip(wb[0],wb[1])
+				# 	blobstocheck.append(b)
+				#
+				# blobsfound = []
+				#
+				# ###Testing###
+				# # if zspace == 14:
+				# # 	code.interact(local=locals())
+				# #############
+				#
+				# if len(blobstocheck) == 0:
+				# 	terminate = True
+				# 	s = '1'
+				# 	# print '\t' + str(zspace)
+				# elif len(blobstocheck) == 1:
+				# 	olap = testOverlap(set(currentBlob), set(blobstocheck[0]))
+				# 	if olap > 0.33:
+				# 		blobsfound.append(blobstocheck[0])
+				# 	elif olap < 0.05 and len(blobstocheck[0]) > len(currentBlob):
+				# 		continue
+				# 	else:
+				# 		terminate = True
+				# 		s = '2'
+				# 		# print '\t' + str(zspace)
+				# else:
+				# 	blobstocheck, overlapVals = orderByPercentOverlap(blobstocheck, currentBlob)
+				# 	olap = testOverlap(set(currentBlob), set(blobstocheck[0]))
+				#
+				# 	if olap > 0.33:
+				# 		blobsfound.append(blobstocheck[0])
+				# 		for b in blobstocheck[1:]:
+				# 			if testOverlap(set(currentBlob), set(blobstocheck[0] + b)) > overlapVals[0]:
+				# 				blobsfound.append(b)
+				# 	else:
+				# 		# code.interact(local=locals())
+				# 		terminate = True
+				# 		s = '3'
+				# 		# print '\t' + str(zspace)
 
 				if terminate == False:
 
@@ -228,12 +250,15 @@ if trace_objects:
 					for b in blobsfound:
 						currentBlob += b
 
+					#Probably need to do the stuff below when I terminate as well
+					color1 = image2[currentBlob[0]]
+
 					image2 = removeFromStack(image2, currentBlob)
 
 					process.append(currentBlob)
 
-
 					box,dimensions = findBBDimensions(currentBlob)
+
 
 			if len(process) > minimum_process_length:
 				objectCount += 1
@@ -249,7 +274,7 @@ if trace_objects:
 
 	print 'Number of chains: ' + str(len(chainLengths))
 	print 'Average chain length: ' + str(sum([x[0] for x in chainLengths])/len(chainLengths))
-	print s
+	# print s
 
 	if os.path.exists('summary.txt'):
 		os.remove('summary.txt')
