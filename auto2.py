@@ -127,12 +127,15 @@ if trace_objects:
 		images.append(im)
 		print 'Loaded image ' + str(i + 1) + '/' + str(len(list_of_image_paths))
 
-	objectCount = -1
-	for z, image in enumerate(images):
+	imageArray = np.dstack(images)
+
+	objectCount = 0
+	for z in xrange(imageArray.shape[2]):
 		###Testing###
 		if z != 0:
 			continue
 		#############
+		image = imageArray[:,:,z]
 
 		colorVals = [c for c in np.unique(image) if c!=0]
 
@@ -151,6 +154,8 @@ if trace_objects:
 
 		for i, startBlob in enumerate(blobs):
 			# print str(i+1) + '/' + str(len(blobs))
+
+			resultArray = np.zeros(imageArray.shape,np.uint16)
 
 			box, dimensions = findBBDimensions(startBlob)
 
@@ -173,7 +178,7 @@ if trace_objects:
 				blobsfound = []
 
 				try:
-					image2 = images[z + zspace]
+					image2 = imageArray[:,:,z+zspace]
 				except:
 					terminate = True
 					s = '0'
@@ -198,6 +203,7 @@ if trace_objects:
 
 				for blob in blobsfound:
 					if len(blob) >len(currentBlob) and testOverlap(set(currentBlob), set(blob)) < 0.05:
+						process.append([])
 						continue
 
 				# colorstocheck = [c for c in np.unique(window) if c != 0]
@@ -263,6 +269,9 @@ if trace_objects:
 			if len(process) > minimum_process_length:
 				objectCount += 1
 
+				for i, blob in enumerate(process):
+					resultArray[:,:,i][zip(*blob)] = objectCount
+
 				print '\n'
 				print objectCount
 				end = timer()
@@ -270,7 +279,7 @@ if trace_objects:
 				print '\n'
 
 				chainLengths.append((len(process), color))
-				pickle.dump((startZ,process,color), open(write_pickles_to + str(objectCount) + '.p', 'wb'))
+				pickle.dump((resultArray, startZ, startZ + len(process)), open(write_pickles_to + str(objectCount) + '.p', 'wb'))
 
 	print 'Number of chains: ' + str(len(chainLengths))
 	print 'Average chain length: ' + str(sum([x[0] for x in chainLengths])/len(chainLengths))
