@@ -15,6 +15,9 @@ from scipy import ndimage
 import cPickle as pickle
 import random
 import collections
+from skimage.feature import peak_local_max
+from skimage.morphology import watershed
+from scipy import ndimage
 
 
 def findBBDimensions(listofpixels):
@@ -57,6 +60,30 @@ def orderByPercentOverlap(blobs, reference):
 	overlapVals = [l[0] for l in overlapList]
 
 	return orderedBlobs, overlapVals
+
+def waterShed(blob, shape):
+	img = np.zeros(shape, np.uint16)
+	img[zip(*blob)] = 99999
+
+	D = ndimage.distance_transform_edt(img)
+	mindist = 7
+	labels = [1,2,3,4]
+	while len(np.unique(labels)) > 3:
+		mindist += 1
+		localMax = peak_local_max(D, indices=False, min_distance=mindist, labels=img)
+
+		markers = ndimage.label(localMax, structure=np.ones((3,3)))[0]
+		labels = watershed(-D, markers, mask=img)
+
+	subBlobs = []
+	for label in np.unique(labels):
+		if label == 0:
+			continue
+		ww = np.where(labels==label)
+		bb = zip(ww[0], ww[1])
+		subBlobs.append(bb)
+
+	return subBlobs
 
 def display(blob):
 
@@ -105,7 +132,7 @@ if trace_objects:
 	for i, path in enumerate(list_of_image_paths):
 		im = cv2.imread(path, -1)
 		images.append(im)
-		print 'Loaded image ' + str(i + 1) + '/' + str(len(list_of_image_paths))
+	print 'Loaded ' + str(len(images)) + ' images.'
 
 	imageArray = np.dstack(images)
 
@@ -175,27 +202,52 @@ if trace_objects:
 				organicWindow = image2[zip(*currentBlob)]
 				frequency = collections.Counter(organicWindow).most_common()
 
-				if frequency[0][1] / float(len(organicWindow)) > 0.75:
-					if frequency[0][0] == 0:
-						if d > 10:
-							terminate = True
-							continue
-						else:
-							process.append([])
-							d += 1
-							continue
-					else:
-						h = np.where(image2 == frequency[0][0])
-						blobsfound.append(zip(h[0],h[1]))
-				else:
-					# code.interact(local=locals())
-					h = np.where(image2 == frequency[0][0])
-					blobsfound.append(zip(h[0],h[1]))
+				# if z+zspace >= 74:
+				# 	img = np.zeros(shape, np.uint16)
+				# 	img[zip(*currentBlob)] = 99999
+				# 	code.interact(local=locals())
 
-				for blob in blobsfound:
-					if len(blob) >len(currentBlob) and testOverlap(set(currentBlob), set(blob)) < 0.05:
+
+				if frequency[0][0] == 0:
+					if d > 10:
+						terminate = True
+						while d > 0:
+							del process[-1]
+							d -= 1
+						continue
+					else:
+						process.append([])
+						d += 1
+						continue
+
+				for each in frequency:
+					if each[0] == 0:
+						continue
+					clr, freq = each
+					break
+
+				q = np.where(image2 == clr)
+				blob2 = zip(q[0],q[1])
+
+				overlap = testOverlap(set(currentBlob), set(blob2))
+				coverage = freq / float(len(organicWindow))
+
+				if coverage > 0.75:
+					if overlap > 0.75:
+						blobsfound.append(blob2)
+					elif overlap > 0.5 and d > 3:
+						blobsfound.append(blob2)
+					elif overlap > 0.1:
+						subBlobs = waterShed(blob2, shape)
+						subBlobs, overlapVals = orderByPercentOverlap(subBlobs, currentBlob)
+						blobsfound.append(subBlobs[0])
+					else:
 						process.append([])
 						continue
+				else:
+					blobsfound.append(blob2)
+
+
 
 				if terminate == False:
 
