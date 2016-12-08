@@ -18,6 +18,8 @@ import collections
 from skimage.feature import peak_local_max
 from skimage.morphology import watershed
 from scipy import ndimage
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 
 def findBBDimensions(listofpixels):
@@ -38,6 +40,18 @@ def findBBDimensions(listofpixels):
 
 
 		return [minxs, maxxs, minys, maxys], [dx, dy]
+
+def findCentroid(listofpixels):
+	if len(listofpixels) == 0:
+		return (0,0)
+	rows = [p[0] for p in listofpixels]
+	cols = [p[1] for p in listofpixels]
+	try:
+		centroid = int(round(np.mean(rows))), int(round(np.mean(cols)))
+	except:
+		# code.interact(local=locals())
+		centroid = (0,0)
+	return centroid
 
 def testOverlap(setofpixels1, setofpixels2):
 
@@ -151,7 +165,8 @@ if trace_objects:
 
 		colorVals = [c for c in np.unique(image) if c!=0]
 		###Testing###
-		colorVals = [6228, 5724]
+		colorVals = [7287]
+		# 6228, 5724, 7287
 		#############
 
 		blobs = []
@@ -168,11 +183,18 @@ if trace_objects:
 		#############
 
 		for i, startBlob in enumerate(blobs):
+			xs = []
+			ys = []
+			xslopes = []
+			yslopes = []
 			# print str(i+1) + '/' + str(len(blobs))
 
 			box, dimensions = findBBDimensions(startBlob)
 
 			color1 = image[startBlob[0]]
+			ogcolor = color1
+
+			centroid1 = findCentroid(startBlob)
 
 			startZ = z
 
@@ -208,7 +230,7 @@ if trace_objects:
 				# 	code.interact(local=locals())
 
 
-				if frequency[0][0] == 0:
+				if frequency[0][0] == 0 and len(frequency) == 1:
 					if d > 10:
 						terminate = True
 						while d > 0:
@@ -216,6 +238,10 @@ if trace_objects:
 							d -= 1
 						continue
 					else:
+						xslopes.append(dzdx)
+						yslopes.append(dzdy)
+						xs.append(x)
+						ys.append(y)
 						process.append([])
 						d += 1
 						continue
@@ -228,6 +254,7 @@ if trace_objects:
 
 				q = np.where(image2 == clr)
 				blob2 = zip(q[0],q[1])
+				centroid2 = findCentroid(blob2)
 
 				overlap = testOverlap(set(currentBlob), set(blob2))
 				coverage = freq / float(len(organicWindow))
@@ -240,14 +267,33 @@ if trace_objects:
 					elif overlap > 0.1:
 						subBlobs = waterShed(blob2, shape)
 						subBlobs, overlapVals = orderByPercentOverlap(subBlobs, currentBlob)
-						blobsfound.append(subBlobs[0])
+						for i, sb in enumerate(subBlobs):
+							if overlapVals[i] > 0.1:
+								blobsfound.append(sb)
+						if len(blobsfound) == 0:
+							try:
+								blobsfound.append(subBlobs[0])
+							except:
+								blobsfound.append(blob2)
 					else:
+						xslopes.append(dzdx)
+						yslopes.append(dzdy)
+						xs.append(x)
+						ys.append(y)
 						process.append([])
 						continue
 				else:
 					blobsfound.append(blob2)
 
+				dzdx = centroid2[0] - centroid1[0]
+				dzdy = centroid2[1] - centroid1[1]
+				x = centroid1[0]
+				y = centroid1[1]
 
+				xslopes.append(dzdx)
+				yslopes.append(dzdy)
+				xs.append(x)
+				ys.append(y)
 
 				if terminate == False:
 
@@ -266,8 +312,29 @@ if trace_objects:
 
 					d = 0
 
+					centroid1 = findCentroid(currentBlob)
+
+
 
 			if len(process) > minimum_process_length:
+				fig = plt.figure()
+				ax = fig.gca(projection='3d')
+				xs = np.array(xs)
+				ys = np.array(ys)
+				zs = np.array(range(imageArray.shape[2]-1)[::-1])
+
+
+				ax.plot(xs,ys,zs)
+
+				# plt.plot(xs,'ro')
+				# plt.show()
+				# plt.plot(ys,'ro')
+				# plt.show()
+				# plt.plot(xslopes,'ro')
+				# plt.show()
+				# plt.plot(yslopes,'ro')
+				# plt.show()
+				# code.interact(local=locals())
 				objectCount += 1
 
 				color = colorList[objectCount]
@@ -334,3 +401,4 @@ if build_resultStack:
 	for z in xrange(resultArray.shape[2]):
 		image = resultArray[:,:,z]
 		cv2.imwrite(write_images_to + list_of_image_paths[z][list_of_image_paths[z].index('/')+1:], image)
+	plt.show()
