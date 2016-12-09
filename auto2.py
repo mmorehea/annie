@@ -116,14 +116,57 @@ def waterShed(blob, shape):
 
 	return subBlobs
 
-def shapeMerge(shape1, shape2):
+def findNearest(img, startPoint, findVal):
+	directions = cycle([[0,1], [1,1], [1,0], [1,-1], [0,-1], [-1,-1], [-1,0], [-1,1]])
+	increment = 0
+	cycleCounter = 0
+	distance = [0,0]
+
+	while True:
+		direction = directions.next()
+
+		for i in [0,1]:
+			if direction[i] > 0:
+				distance[i] = direction[i] + increment
+			elif direction[i] < 0:
+				distance[i] = direction[i] - increment
+			else:
+				distance[i] = direction[i]
+
+		checkPoint = (startPoint[0] + distance[0],startPoint[1] + distance[1])
+
+		cycleCounter += 1
+		if cycleCounter % 8 == 0:
+			increment += 1
+
+		# print cycleCounter
+
+		try:
+			if img[checkPoint] == findVal:
+				break
+		except:
+			#code.interact(local=locals())
+			break
+
+	return checkPoint
+
+
+def blobMerge(blob1, blob2, imshape):
 	# from http://stackoverflow.com/questions/14730340/find-the-average-vector-shape
-	if len(shape2) > len(shape1):
-		shape1, shape2 = shape2, shape1
+	if len(blob2) > len(blob1):
+		blob1, blob2 = blob2, blob1
 
-	for point in shape1:
-		near =
+	startImg = np.zeros(imshape, np.uint16)
+	startImg[zip(*blob1)] =	5456
+	startImg[zip(*blob2)] = 32949
 
+	mergedBlob = []
+	for point in blob1:
+		near = findNearest(startImg, point, 2)
+		size = ((len(blob1)**0.5) + (len(blob2)**0.5))/2
+		slope = float(point[1] - near[1]) / (point[0] - near[0])
+		code.interact(local=locals())
+	return
 
 def display(blob):
 
@@ -329,7 +372,7 @@ def main():
 						for b in blobsfound:
 							newBlob += b
 
-						averageBlob = shapeMerge(currentBlob, newBlob)
+						averageBlob = blobMerge(currentBlob, newBlob, shape)
 
 						currentBlob = newBlob
 
