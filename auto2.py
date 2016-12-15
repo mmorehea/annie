@@ -159,6 +159,9 @@ def blobMerge(blob1, blob2, imshape):
 	if len(blob2) > len(blob1):
 		blob1, blob2 = blob2, blob1
 
+	blob1 = upperLeftJustify(blob1)
+	blob2 = upperLeftJustify(blob2)
+
 	startImg = np.zeros(imshape, np.uint16)
 	startImg[zip(*blob1)] =	5456
 	startImg[zip(*blob2)] = 32949
@@ -191,11 +194,42 @@ def blobMerge(blob1, blob2, imshape):
 			dist = 0.5 * size
 			x = (dist**2/(1+slope**2))**0.5
 			y = slope * x
+			if point[0] < near[0]:
+				x = 0-x
+			if point[1] < near[1]:
+				y=0-y
 			newpoint = (int(near[0] + x), int(near[1] + y))
 
 		mergedBlob.append(newpoint)
 
 	return mergedBlob
+
+def upperLeftJustify(blob):
+	box, dimensions = findBBDimensions(blob)
+	transformedBlob = []
+	for point in blob:
+		transformedPoint = (point[0] - box[0], point[1] - box[2])
+		transformedBlob.append(transformedPoint)
+
+	return transformedBlob
+
+def upperRightJustify(blob, shape):
+	box, dimensions = findBBDimensions(blob)
+	transformedBlob = []
+	for point in blob:
+		transformedPoint = (shape[0] - dimensions[0], shape[1] - dimensions[1])
+		transformedBlob.append(transformedPoint)
+
+	return transformedBlob
+
+def topJustify(blob, shape):
+	box, dimensions = findBBDimensions(blob)
+	transformedBlob = []
+	for point in blob:
+		transformedPoint = (0.5 * shape[0], point[1] - box[2])
+		transformedBlob.append(transformedPoint)
+
+	return transformedBlob
 
 def display(blob):
 
@@ -401,22 +435,29 @@ def main():
 						for b in blobsfound:
 							newBlob += b
 
-						averageBlob = blobMerge(currentBlob, newBlob, shape)
+						if zspace == 1:
+							averageBlob = blobMerge(currentBlob, newBlob, shape)
+						else:
+							zz = averageBlob
+							averageBlob = blobMerge(averageBlob, newBlob, shape)
+							averageBlob += topJustify(zz, shape)
+							averageBlob += upperRightJustify(newBlob, shape)
 
-						currentBlob = newBlob
 
 						#Probably need to do the stuff below when I terminate as well
-						color1 = image2[currentBlob[0]]
+						color1 = image2[newBlob[0]]
 
-						image2[zip(*currentBlob)] = 0
+						image2[zip(*newBlob)] = 0
 
-						process.append(currentBlob)
+						process.append(newBlob + averageBlob)
 
-						box,dimensions = findBBDimensions(currentBlob)
+						box,dimensions = findBBDimensions(newBlob)
 
 						d = 0
 
-						centroid1 = findCentroid(currentBlob)
+						centroid1 = findCentroid(newBlob)
+
+						currentBlob = newBlob
 
 
 
@@ -510,17 +551,17 @@ def main():
 
 		ratarray = [float(measurement[1])/measurement[0] for measurement in measurementsList]
 
-		plt.figure(1)
-		plt.subplot(211)
-		plt.plot(zip(*measurementsList)[0])
-		plt.subplot(212)
-		plt.plot(zip(*measurementsList)[1])
-		plt.figure(2)
-		plt.plot(diffarray)
-		plt.figure(3)
-		plt.plot(ratarray)
-		plt.show()
-		code.interact(local=locals())
+		# plt.figure(1)
+		# plt.subplot(211)
+		# plt.plot(zip(*measurementsList)[0])
+		# plt.subplot(212)
+		# plt.plot(zip(*measurementsList)[1])
+		# plt.figure(2)
+		# plt.plot(diffarray)
+		# plt.figure(3)
+		# plt.plot(ratarray)
+		# plt.show()
+		# code.interact(local=locals())
 
 
 if __name__ == "__main__":
