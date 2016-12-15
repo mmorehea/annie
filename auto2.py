@@ -64,7 +64,10 @@ def getMeasurements(blob, shape):
 
 		edgePoint = False
 		for each in q:
-			if img[each] == 0:
+			try:
+				if img[each] == 0:
+					edgePoint = True
+			except IndexError:
 				edgePoint = True
 		if edgePoint:
 			per.append(p)
@@ -116,7 +119,7 @@ def waterShed(blob, shape):
 
 	return subBlobs
 
-def findNearest(img, startPoint, findVal):
+def findNearest(img, startPoint):
 	directions = cycle([[0,1], [1,1], [1,0], [1,-1], [0,-1], [-1,-1], [-1,0], [-1,1]])
 	increment = 0
 	cycleCounter = 0
@@ -145,7 +148,7 @@ def findNearest(img, startPoint, findVal):
 		# print cycleCounter
 
 		try:
-			if img[checkPoint] == findVal:
+			if img[checkPoint] > 0:
 				break
 		except:
 			#code.interact(local=locals())
@@ -163,12 +166,11 @@ def blobMerge(blob1, blob2, imshape):
 	blob2 = upperLeftJustify(blob2)
 
 	startImg = np.zeros(imshape, np.uint16)
-	startImg[zip(*blob1)] =	5456
-	startImg[zip(*blob2)] = 32949
+	startImg[zip(*blob2)] = 99999
 
 	mergedBlob = []
 	for point in blob1:
-		near = findNearest(startImg, point, 2)
+		near = findNearest(startImg, point)
 		size = ((len(blob1)**0.5) + (len(blob2)**0.5))/2
 
 		if point[0] == near[0]:
@@ -201,6 +203,8 @@ def blobMerge(blob1, blob2, imshape):
 			newpoint = (int(near[0] + x), int(near[1] + y))
 
 		mergedBlob.append(newpoint)
+		if point == (0,0):
+			code.interact(local=locals())
 
 	return mergedBlob
 
@@ -217,7 +221,7 @@ def upperRightJustify(blob, shape):
 	box, dimensions = findBBDimensions(blob)
 	transformedBlob = []
 	for point in blob:
-		transformedPoint = (shape[0] - dimensions[0], shape[1] - dimensions[1])
+		transformedPoint = (point[0] - box[0], point[1] + shape[1] - dimensions[1] - 10)
 		transformedBlob.append(transformedPoint)
 
 	return transformedBlob
@@ -226,7 +230,7 @@ def topJustify(blob, shape):
 	box, dimensions = findBBDimensions(blob)
 	transformedBlob = []
 	for point in blob:
-		transformedPoint = (0.5 * shape[0], point[1] - box[2])
+		transformedPoint = (point[0] - box[0],point[1] + 0.5 * shape[1] - 0.5 * dimensions[1])
 		transformedBlob.append(transformedPoint)
 
 	return transformedBlob
@@ -252,8 +256,8 @@ def display(blob):
 ################################################################################
 # SETTINGS
 minimum_process_length = 0
-write_images_to = 'littleresult/'
-write_pickles_to = 'pickles/object'
+write_images_to = '1r/'
+write_pickles_to = 'p/object'
 trace_objects = True
 build_resultStack = True
 load_stack_from_pickle_file = False
@@ -297,8 +301,9 @@ def main():
 
 			colorVals = [c for c in np.unique(image) if c!=0]
 			###Testing###
-			colorVals = [5724]
-			# 6228, 5724, 7287
+			colorVals = [5749]
+			# 6228, 5724, 7287, 9632, 2547
+			# 5724 @ 880: 6758, @817: 5749
 			#############
 
 			blobs = []
@@ -315,11 +320,40 @@ def main():
 			#############
 
 			for i, startBlob in enumerate(blobs):
+				# square = []
+				# for row in xrange(200):
+				# 	for col in xrange(200):
+				# 		    square.append((row,col))
+				# center = (100,100)
+				# circle = []
+				# for row in xrange(200):
+				# 	for col in xrange(200):
+				# 		if (((row-center[0])**2) + ((col-center[1])**2))**0.5 <= 100:
+				# 			circle.append((row,col))
+				# imm = np.zeros((1000,1000))
+				# im2 = imm.copy()
+				# im3 = imm.copy()
+				# merged = blobMerge(square,circle,imm.shape)
+				#
+				# circle = topJustify(circle, imm.shape)
+				# merged = upperRightJustify(merged, imm.shape)
+				# imm[zip(*square)] = 99999
+				# imm[zip(*circle)] = 99999
+				# imm[zip(*merged)] = 99999
+				#
+				# cv2.imshow('a',imm)
+				# cv2.waitKey()
+				#
+				#
+				# code.interact(local=locals())
 				# xs = []
 				# ys = []
 				# xslopes = []
 				# yslopes = []
 				measurementsList = []
+				coverage2List = []
+				coverage2Deviance = []
+				noncircularityList = []
 				# print str(i+1) + '/' + str(len(blobs))
 
 				box, dimensions = findBBDimensions(startBlob)
@@ -341,7 +375,19 @@ def main():
 				currentBlob = startBlob
 
 				while terminate == False:
-					measurementsList.append(getMeasurements(currentBlob, shape))
+					measurements = getMeasurements(currentBlob, shape)
+					noncircularity = (measurements[1]**2)/(4*3.1415926) - measurements[0]
+					if len(noncircularityList) > 10:
+						if abs(noncircularity) - abs(np.mean(np.array(noncircularityList[-10:]))) > 5 * np.std(np.array(noncircularityList[-10:])):
+							terminate = True
+							# code.interact(local=locals())
+							continue
+					# if len(noncircularityList) > 50:
+					# 	if abs(noncircularity) - abs(np.mean(np.array(noncircularityList[-50:]))) > 5 * np.std(np.array(noncircularityList[-50:])):
+					# 		terminate = True
+					# 		continue
+					measurementsList.append(measurements)
+					noncircularityList.append(noncircularity)
 
 					zspace += 1
 					blobsfound = []
@@ -359,6 +405,7 @@ def main():
 					frequency = collections.Counter(organicWindow).most_common()
 
 
+
 					if frequency[0][0] == 0 and len(frequency) == 1:
 						if d > 10:
 							terminate = True
@@ -367,10 +414,6 @@ def main():
 								d -= 1
 							continue
 						else:
-							# xslopes.append(dzdx)
-							# yslopes.append(dzdy)
-							# xs.append(x)
-							# ys.append(y)
 							process.append([])
 							d += 1
 							continue
@@ -388,10 +431,6 @@ def main():
 					overlap = testOverlap(set(currentBlob), set(blob2))
 					coverage = freq / float(len(organicWindow))
 
-					# if zspace: >= 886:
-					# 	img = np.zeros(shape,uint16)
-					# 	img[zip(*averageBlob)] = 99999
-					# 	code.interact(local=locals())
 
 					if coverage > 0.75:
 						if overlap > 0.75:
@@ -410,24 +449,25 @@ def main():
 								except:
 									blobsfound.append(blob2)
 						else:
-							# xslopes.append(dzdx)
-							# yslopes.append(dzdy)
-							# xs.append(x)
-							# ys.append(y)
 							process.append([])
 							continue
 					else:
 						blobsfound.append(blob2)
 
-					# dzdx = centroid2[0] - centroid1[0]
-					# dzdy = centroid2[1] - centroid1[1]
-					# x = centroid1[0]
-					# y = centroid1[1]
+					freq2 = len(set(currentBlob) & set(blobsfound[0]))
+					coverage2 = freq2 / float(len(blob2))
+					measurementsList.append(coverage-coverage2)
 
-					# xslopes.append(dzdx)
-					# yslopes.append(dzdy)
-					# xs.append(x)
-					# ys.append(y)
+					if zspace > 10:
+						coverage2Deviance.append(coverage2 - float(sum(coverage2List[-10:]))/10)
+					elif zspace > 50:
+						coverage2Deviance.append(coverage2 - float(sum(coverage2List[-50:]))/50)
+					else:
+						coverage2Deviance.append(0)
+
+					coverage2List.append(coverage2)
+
+					# code.interact(local=locals())
 
 					if terminate == False:
 
@@ -435,13 +475,13 @@ def main():
 						for b in blobsfound:
 							newBlob += b
 
-						if zspace == 1:
-							averageBlob = blobMerge(currentBlob, newBlob, shape)
-						else:
-							zz = averageBlob
-							averageBlob = blobMerge(averageBlob, newBlob, shape)
-							averageBlob += topJustify(zz, shape)
-							averageBlob += upperRightJustify(newBlob, shape)
+						# if zspace == 1:
+						# 	averageBlob = blobMerge(currentBlob, newBlob, shape)
+						# else:
+						# 	zz = averageBlob
+						# 	averageBlob = blobMerge(averageBlob, newBlob, shape)
+						# 	averageBlob += topJustify(zz, shape)
+						# 	averageBlob += upperRightJustify(newBlob, shape)
 
 
 						#Probably need to do the stuff below when I terminate as well
@@ -449,7 +489,7 @@ def main():
 
 						image2[zip(*newBlob)] = 0
 
-						process.append(newBlob + averageBlob)
+						process.append(newBlob)
 
 						box,dimensions = findBBDimensions(newBlob)
 
@@ -471,15 +511,6 @@ def main():
 					#
 					# ax.plot(xs,ys,zs)
 
-					# plt.plot(xs,'ro')
-					# plt.show()
-					# plt.plot(ys,'ro')
-					# plt.show()
-					# plt.plot(xslopes,'ro')
-					# plt.show()
-					# plt.plot(yslopes,'ro')
-					# plt.show()
-					# code.interact(local=locals())
 					objectCount += 1
 
 					color = colorList[objectCount]
@@ -547,9 +578,9 @@ def main():
 			image = resultArray[:,:,z]
 			cv2.imwrite(write_images_to + list_of_image_paths[z][list_of_image_paths[z].index('/')+1:], image)
 
-		diffarray = [(measurement[1]**2)/(4*3.1415926) - measurement[0] for measurement in measurementsList]
-
-		ratarray = [float(measurement[1])/measurement[0] for measurement in measurementsList]
+		# diffarray = [(measurement[1]**2)/(4*3.1415926) - measurement[0] for measurement in measurementsList]
+		#
+		# ratarray = [float(measurement[1])/measurement[0] for measurement in measurementsList]
 
 		# plt.figure(1)
 		# plt.subplot(211)
@@ -561,6 +592,11 @@ def main():
 		# plt.figure(3)
 		# plt.plot(ratarray)
 		# plt.show()
+		plt.figure(1)
+		plt.plot(coverage2List)
+		plt.figure(2)
+		plt.plot(coverage2Deviance)
+		plt.show()
 		# code.interact(local=locals())
 
 
