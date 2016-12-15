@@ -122,6 +122,9 @@ def findNearest(img, startPoint, findVal):
 	cycleCounter = 0
 	distance = [0,0]
 
+	if img[startPoint] > 0:
+		return startPoint
+
 	while True:
 		direction = directions.next()
 
@@ -164,9 +167,35 @@ def blobMerge(blob1, blob2, imshape):
 	for point in blob1:
 		near = findNearest(startImg, point, 2)
 		size = ((len(blob1)**0.5) + (len(blob2)**0.5))/2
-		slope = float(point[1] - near[1]) / (point[0] - near[0])
-		code.interact(local=locals())
-	return
+
+		if point[0] == near[0]:
+			verticalDistance = point[1] - near[1]
+			if verticalDistance > 0:
+				newpoint = (near[0], near[1] + 0.5 * size)
+			elif verticalDistance < 0:
+				newpoint = (near[0], near[1] - 0.5 * size)
+			else:
+				newpoint = (near[0],near[1])
+
+		elif point[1] == near[1]:
+			horizontalDistance = point[0] - near[0]
+			if horizontalDistance > 0:
+				newpoint = (near[0] + 0.5 * size, near[1])
+			elif horizontalDistance < 0:
+				newpoint = (near[0] - 0.5 * size, near[1])
+			else:
+				newpoint = (near[0],near[1])
+
+		else:
+			slope = float(point[1] - near[1]) / (point[0] - near[0])
+			dist = 0.5 * size
+			x = (dist**2/(1+slope**2))**0.5
+			y = slope * x
+			newpoint = (int(near[0] + x), int(near[1] + y))
+
+		mergedBlob.append(newpoint)
+
+	return mergedBlob
 
 def display(blob):
 
