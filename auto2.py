@@ -262,7 +262,7 @@ def display(blob):
 ################################################################################
 # SETTINGS
 minimum_process_length = 0
-write_images_to = 'littleresult/'
+write_images_to = 'result/'
 write_pickles_to = 'pickles/object'
 trace_objects = True
 build_resultStack = True
@@ -427,54 +427,54 @@ def main():
 					dys = [x[1] for x in displacementBuffer]
 					avgDisplacement_last5 = (float(sum(dxs))/5, float(sum(dys))/5)
 
-					if coverage > 0:
-						if coverage2 > 0.8:
-							blobsfound.append(blob2)
-							splitRecent = False
-						else:
-							if splitRecent:
-								splitPoint = (splitPoint[0] + avgDisplacement_last5[0], splitPoint[1] + avgDisplacement_last5[1])
-								maxDist = distance(splitPoint, centroid1)
-								bl = []
-								for point in blob2:
-									if distance(point, centroid1) < maxDist:
-										bl.append(point)
-								blobsfound.append(bl)
-							else:
-								subBlobs, splitPoint = waterShed(blob2, shape)
-								subBlobs, overlapVals = orderByPercentOverlap(subBlobs, currentBlob)
-								for i, sb in enumerate(subBlobs):
-									if overlapVals[i] > 0:
-										blobsfound.append(sb)
-								if len(blobsfound) < len(subBlobs):
-									splitRecent = True
-
-					if len(blobsfound) == 0:
-						terminate = True
-						print 'blobsfound empty'
-						continue
-
-					# if coverage > 0.75:
-					# 	if overlap > 0.75:
+					# if coverage > 0:
+					# 	if coverage2 > 0.8:
 					# 		blobsfound.append(blob2)
-					# 	elif overlap > 0.5 and d > 3:
-					# 		blobsfound.append(blob2)
-					# 	elif overlap > 0.1:
-					# 		subBlobs = waterShed(blob2, shape)
-					# 		subBlobs, overlapVals = orderByPercentOverlap(subBlobs, currentBlob)
-					# 		for i, sb in enumerate(subBlobs):
-					# 			if overlapVals[i] > 0.1:
-					# 				blobsfound.append(sb)
-					# 		if len(blobsfound) == 0:
-					# 			try:
-					# 				blobsfound.append(subBlobs[0])
-					# 			except:
-					# 				blobsfound.append(blob2)
+					# 		splitRecent = False
 					# 	else:
-					# 		process.append([])
-					# 		continue
-					# else:
-					# 	blobsfound.append(blob2)
+					# 		if splitRecent:
+					# 			splitPoint = (splitPoint[0] + avgDisplacement_last5[0], splitPoint[1] + avgDisplacement_last5[1])
+					# 			maxDist = distance(splitPoint, centroid1)
+					# 			bl = []
+					# 			for point in blob2:
+					# 				if distance(point, centroid1) < maxDist:
+					# 					bl.append(point)
+					# 			blobsfound.append(bl)
+					# 		else:
+					# 			subBlobs, splitPoint = waterShed(blob2, shape)
+					# 			subBlobs, overlapVals = orderByPercentOverlap(subBlobs, currentBlob)
+					# 			for i, sb in enumerate(subBlobs):
+					# 				if overlapVals[i] > 0:
+					# 					blobsfound.append(sb)
+					# 			if len(blobsfound) < len(subBlobs):
+					# 				splitRecent = True
+					#
+					# if len(blobsfound) == 0:
+					# 	terminate = True
+					# 	print 'blobsfound empty'
+					# 	continue
+
+					if coverage > 0.75:
+						if overlap > 0.75:
+							blobsfound.append(blob2)
+						elif overlap > 0.5 and d > 3:
+							blobsfound.append(blob2)
+						elif overlap > 0.1:
+							subBlobs = waterShed(blob2, shape)
+							subBlobs, overlapVals = orderByPercentOverlap(subBlobs, currentBlob)
+							for i, sb in enumerate(subBlobs):
+								if overlapVals[i] > 0.1:
+									blobsfound.append(sb)
+							if len(blobsfound) == 0:
+								try:
+									blobsfound.append(subBlobs[0])
+								except:
+									blobsfound.append(blob2)
+						else:
+							process.append([])
+							continue
+					else:
+						blobsfound.append(blob2)
 
 					# code.interact(local=locals())
 					print str(zspace) + '. ' + str(overlap) + ' ' + str(coverage) + ' ' + str(coverage2)
