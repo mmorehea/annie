@@ -116,8 +116,11 @@ def waterShed(blob, shape):
 		ww = np.where(labels==label)
 		bb = zip(ww[0], ww[1])
 		subBlobs.append(bb)
-
-	return subBlobs
+	# code.interact(local=locals())
+	try:
+		return subBlobs, zip(np.where(localMax==True)[0],np.where(localMax==True)[1])[0]
+	except IndexError:
+		return subBlobs, 0
 
 def findNearest(img, startPoint):
 	directions = cycle([[0,1], [1,1], [1,0], [1,-1], [0,-1], [-1,-1], [-1,0], [-1,1]])
@@ -235,6 +238,9 @@ def topJustify(blob, shape):
 
 	return transformedBlob
 
+def distance(point1, point2):
+	return ((point2[0] - point1[0])**2 + (point2[1] - point1[1])**2)**0.5
+
 def display(blob):
 
 	img = np.zeros(shape, np.uint16)
@@ -256,8 +262,8 @@ def display(blob):
 ################################################################################
 # SETTINGS
 minimum_process_length = 0
-write_images_to = '1r/'
-write_pickles_to = 'p/object'
+write_images_to = 'littleresult/'
+write_pickles_to = 'pickles/object'
 trace_objects = True
 build_resultStack = True
 load_stack_from_pickle_file = False
@@ -301,7 +307,13 @@ def main():
 
 			colorVals = [c for c in np.unique(image) if c!=0]
 			###Testing###
-			colorVals = [5749]
+			colorVals = []
+			colorVals.append(5724)
+			# colorVals.append(4766)
+			# colorVals.append(5731)
+			# colorVals.append(4917)
+			# colorVals.append(5875)
+			# colorVals.append(3681)
 			# 6228, 5724, 7287, 9632, 2547
 			# 5724 @ 880: 6758, @817: 5749
 			#############
@@ -314,46 +326,8 @@ def main():
 
 			blobs = sorted(blobs, key=len)
 
-			###Testing###
-			# testblob = blobs[94]
-			# blobs = [testblob]
-			#############
 
 			for i, startBlob in enumerate(blobs):
-				# square = []
-				# for row in xrange(200):
-				# 	for col in xrange(200):
-				# 		    square.append((row,col))
-				# center = (100,100)
-				# circle = []
-				# for row in xrange(200):
-				# 	for col in xrange(200):
-				# 		if (((row-center[0])**2) + ((col-center[1])**2))**0.5 <= 100:
-				# 			circle.append((row,col))
-				# imm = np.zeros((1000,1000))
-				# im2 = imm.copy()
-				# im3 = imm.copy()
-				# merged = blobMerge(square,circle,imm.shape)
-				#
-				# circle = topJustify(circle, imm.shape)
-				# merged = upperRightJustify(merged, imm.shape)
-				# imm[zip(*square)] = 99999
-				# imm[zip(*circle)] = 99999
-				# imm[zip(*merged)] = 99999
-				#
-				# cv2.imshow('a',imm)
-				# cv2.waitKey()
-				#
-				#
-				# code.interact(local=locals())
-				# xs = []
-				# ys = []
-				# xslopes = []
-				# yslopes = []
-				measurementsList = []
-				coverage2List = []
-				coverage2Deviance = []
-				noncircularityList = []
 				# print str(i+1) + '/' + str(len(blobs))
 
 				box, dimensions = findBBDimensions(startBlob)
@@ -372,22 +346,12 @@ def main():
 				zspace = 0
 				d = 0
 				terminate = False
+				splitRecent = False
+				splitList = []
+				displacementBuffer = []
 				currentBlob = startBlob
 
 				while terminate == False:
-					measurements = getMeasurements(currentBlob, shape)
-					noncircularity = (measurements[1]**2)/(4*3.1415926) - measurements[0]
-					if len(noncircularityList) > 10:
-						if abs(noncircularity) - abs(np.mean(np.array(noncircularityList[-10:]))) > 5 * np.std(np.array(noncircularityList[-10:])):
-							terminate = True
-							# code.interact(local=locals())
-							continue
-					# if len(noncircularityList) > 50:
-					# 	if abs(noncircularity) - abs(np.mean(np.array(noncircularityList[-50:]))) > 5 * np.std(np.array(noncircularityList[-50:])):
-					# 		terminate = True
-					# 		continue
-					measurementsList.append(measurements)
-					noncircularityList.append(noncircularity)
 
 					zspace += 1
 					blobsfound = []
@@ -403,8 +367,6 @@ def main():
 
 					organicWindow = image2[zip(*currentBlob)]
 					frequency = collections.Counter(organicWindow).most_common()
-
-
 
 					if frequency[0][0] == 0 and len(frequency) == 1:
 						if d > 10:
@@ -426,48 +388,96 @@ def main():
 
 					q = np.where(image2 == clr)
 					blob2 = zip(q[0],q[1])
+
+					# if splitRecent:
+					# 	splitPoint = (splitPoint[0] + avgDisplacement_last5[0], splitPoint[1] + avgDisplacement_last5[1])
+					# 	splitLine_slope = -1/((centroid1[1] - splitPoint[1]) / (centroid1[0] - splitPoint[0]))
+					# 	splitLine = [splitPoint]
+					# 	for sign in [1,-1]:
+					# 		for i in xrange(5):
+					# 			p = (splitPoint[0] + sign * (i+1), splitPoint[1] + sign * splitLine_slope * (i+1))
+					# 			try:
+					# 				a = image2[p]
+					# 			except IndexError:
+					# 				continue
+					# 			splitLine.append(p)
+					# 	for point in splitLine:
+					# 		image2[point] = 0
+					# 		q = np.where(image2 == clr)
+					# 		blob2 = zip(q[0],q[1])
+					# 	subBlobs, splitPoint = waterShed(blob2, shape)
+					# 	if len(subBlobs) > 1:
+					# 		subBlobs, overlapVals = orderByPercentOverlap(subBlobs, currentBlob)
+					# 		blob2 = subBlobs[0]
+
 					centroid2 = findCentroid(blob2)
 
 					overlap = testOverlap(set(currentBlob), set(blob2))
 					coverage = freq / float(len(organicWindow))
 
-
-					if coverage > 0.75:
-						if overlap > 0.75:
-							blobsfound.append(blob2)
-						elif overlap > 0.5 and d > 3:
-							blobsfound.append(blob2)
-						elif overlap > 0.1:
-							subBlobs = waterShed(blob2, shape)
-							subBlobs, overlapVals = orderByPercentOverlap(subBlobs, currentBlob)
-							for i, sb in enumerate(subBlobs):
-								if overlapVals[i] > 0.1:
-									blobsfound.append(sb)
-							if len(blobsfound) == 0:
-								try:
-									blobsfound.append(subBlobs[0])
-								except:
-									blobsfound.append(blob2)
-						else:
-							process.append([])
-							continue
-					else:
-						blobsfound.append(blob2)
-
-					freq2 = len(set(currentBlob) & set(blobsfound[0]))
+					freq2 = len(set(currentBlob) & set(blob2))
 					coverage2 = freq2 / float(len(blob2))
-					measurementsList.append(coverage-coverage2)
 
-					if zspace > 10:
-						coverage2Deviance.append(coverage2 - float(sum(coverage2List[-10:]))/10)
-					elif zspace > 50:
-						coverage2Deviance.append(coverage2 - float(sum(coverage2List[-50:]))/50)
-					else:
-						coverage2Deviance.append(0)
+					dx = centroid2[0] - centroid1[0]
+					dy = centroid2[1] - centroid1[1]
+					displacementBuffer.append((dx,dy))
+					if len(displacementBuffer) > 5:
+						del displacementBuffer[0]
+					dxs = [x[0] for x in displacementBuffer]
+					dys = [x[1] for x in displacementBuffer]
+					avgDisplacement_last5 = (float(sum(dxs))/5, float(sum(dys))/5)
 
-					coverage2List.append(coverage2)
+					if coverage > 0:
+						if coverage2 > 0.8:
+							blobsfound.append(blob2)
+							splitRecent = False
+						else:
+							if splitRecent:
+								splitPoint = (splitPoint[0] + avgDisplacement_last5[0], splitPoint[1] + avgDisplacement_last5[1])
+								maxDist = distance(splitPoint, centroid1)
+								bl = []
+								for point in blob2:
+									if distance(point, centroid1) < maxDist:
+										bl.append(point)
+								blobsfound.append(bl)
+							else:
+								subBlobs, splitPoint = waterShed(blob2, shape)
+								subBlobs, overlapVals = orderByPercentOverlap(subBlobs, currentBlob)
+								for i, sb in enumerate(subBlobs):
+									if overlapVals[i] > 0:
+										blobsfound.append(sb)
+								if len(blobsfound) < len(subBlobs):
+									splitRecent = True
+
+					if len(blobsfound) == 0:
+						terminate = True
+						print 'blobsfound empty'
+						continue
+
+					# if coverage > 0.75:
+					# 	if overlap > 0.75:
+					# 		blobsfound.append(blob2)
+					# 	elif overlap > 0.5 and d > 3:
+					# 		blobsfound.append(blob2)
+					# 	elif overlap > 0.1:
+					# 		subBlobs = waterShed(blob2, shape)
+					# 		subBlobs, overlapVals = orderByPercentOverlap(subBlobs, currentBlob)
+					# 		for i, sb in enumerate(subBlobs):
+					# 			if overlapVals[i] > 0.1:
+					# 				blobsfound.append(sb)
+					# 		if len(blobsfound) == 0:
+					# 			try:
+					# 				blobsfound.append(subBlobs[0])
+					# 			except:
+					# 				blobsfound.append(blob2)
+					# 	else:
+					# 		process.append([])
+					# 		continue
+					# else:
+					# 	blobsfound.append(blob2)
 
 					# code.interact(local=locals())
+					print str(zspace) + '. ' + str(overlap) + ' ' + str(coverage) + ' ' + str(coverage2)
 
 					if terminate == False:
 
@@ -592,11 +602,11 @@ def main():
 		# plt.figure(3)
 		# plt.plot(ratarray)
 		# plt.show()
-		plt.figure(1)
-		plt.plot(coverage2List)
-		plt.figure(2)
-		plt.plot(coverage2Deviance)
-		plt.show()
+		# plt.figure(1)
+		# plt.plot(coverage2List)
+		# plt.figure(2)
+		# plt.plot(coverage2Deviance)
+		# plt.show()
 		# code.interact(local=locals())
 
 
